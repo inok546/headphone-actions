@@ -1,17 +1,21 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package app.headphoneactions.device.sony
+package io.github.inok546.headphoneactions.device.sony
 
-import app.headphoneactions.device.HeadphoneModel
-import app.headphoneactions.device.SupportedAction
+import io.github.inok546.headphoneactions.device.HeadphoneModel
+import io.github.inok546.headphoneactions.device.SupportedAction
 
 /**
- * Temporary stand-in for a real WH-1000XM6 driver: a fixed action list with no
- * Bluetooth behind it. The real driver must keep these action IDs.
+ * Sony WH-1000XM6. The actions are declared but not executed yet: the app has no
+ * Sony protocol support so far. The action IDs are published and must not change.
  */
-val sonyWh1000xm6Mock = HeadphoneModel(
+val sonyWh1000xm6 = HeadphoneModel(
     id = "sony.wh1000xm6",
     displayName = "Sony WH-1000XM6",
+    // Gadgetbridge's SonyWH1000XM6Coordinator matches ".*WH-1000XM6.*". "LE_"-prefixed
+    // entries are excluded: that is the LE Audio side of the headphones, while the Sony
+    // protocol needs the Bluetooth Classic device.
+    bluetoothNamePattern = Regex("(?!LE_).*WH-1000XM6.*"),
     actions = listOf(
         SupportedAction("sony.wh1000xm6.noise_control.anc", "Noise Cancelling"),
         SupportedAction("sony.wh1000xm6.noise_control.ambient", "Ambient Sound"),

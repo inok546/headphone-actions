@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package app.headphoneactions
+package io.github.inok546.headphoneactions
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -21,14 +22,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
-import app.headphoneactions.device.HeadphoneModel
-import app.headphoneactions.device.SupportedAction
-import app.headphoneactions.device.registrableModels
+import io.github.inok546.headphoneactions.bluetooth.PairedDevice
+import io.github.inok546.headphoneactions.bluetooth.PairedDevices
+import io.github.inok546.headphoneactions.device.HeadphoneModel
+import io.github.inok546.headphoneactions.device.RegisteredDevice
+import io.github.inok546.headphoneactions.device.SupportedAction
+import io.github.inok546.headphoneactions.device.findModelForDeviceName
 import java.text.DateFormat
 import java.util.Date
 
 data class MainUiState(
+    val registeredDevice: RegisteredDevice? = null,
     val registeredModel: HeadphoneModel? = null,
+    /** Null while a device is registered: the list is only used to pick one. */
+    val pairedDevices: PairedDevices? = null,
     val publishedActions: List<SupportedAction> = emptyList(),
     val lastRoutineAction: LastRoutineAction? = null,
 )
@@ -44,7 +51,9 @@ fun AppTheme(content: @Composable () -> Unit) {
 @Composable
 fun MainScreen(
     state: MainUiState,
-    onRegister: (HeadphoneModel) -> Unit,
+    onRequestBluetoothPermission: () -> Unit,
+    onOpenAppSettings: () -> Unit,
+    onRegister: (PairedDevice, HeadphoneModel) -> Unit,
     onRemoveRegistration: () -> Unit,
 ) {
     Scaffold { innerPadding ->
@@ -57,7 +66,10 @@ fun MainScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
-            RegistrationSection(state.registeredModel, onRegister, onRemoveRegistration)
+            RegistrationSection(state.registeredDevice, state.registeredModel, onRemoveRegistration)
+            state.pairedDevices?.let {
+                PairedDevicesSection(it, onRequestBluetoothPermission, onOpenAppSettings, onRegister)
+            }
             PublishedActionsSection(state.publishedActions)
             LastRoutineActionSection(state.lastRoutineAction, state.registeredModel)
         }
@@ -66,23 +78,72 @@ fun MainScreen(
 
 @Composable
 private fun RegistrationSection(
+    registeredDevice: RegisteredDevice?,
     registeredModel: HeadphoneModel?,
-    onRegister: (HeadphoneModel) -> Unit,
     onRemoveRegistration: () -> Unit,
 ) {
     Section(stringResource(R.string.registered_device_title)) {
-        if (registeredModel == null) {
+        if (registeredDevice == null) {
             Text(stringResource(R.string.registered_device_none))
-            registrableModels.forEach { model ->
-                Button(onClick = { onRegister(model) }) {
-                    Text(stringResource(R.string.register_model, model.displayName))
+            return@Section
+        }
+        Column {
+            Text(registeredDevice.name, style = MaterialTheme.typography.bodyLarge)
+            registeredModel?.let { Text(stringResource(R.string.registered_device_model, it.displayName)) }
+            Monospace(registeredDevice.address)
+        }
+        OutlinedButton(onClick = onRemoveRegistration) {
+            Text(stringResource(R.string.remove_registration))
+        }
+    }
+}
+
+@Composable
+private fun PairedDevicesSection(
+    pairedDevices: PairedDevices,
+    onRequestBluetoothPermission: () -> Unit,
+    onOpenAppSettings: () -> Unit,
+    onRegister: (PairedDevice, HeadphoneModel) -> Unit,
+) {
+    Section(stringResource(R.string.paired_devices_title)) {
+        when (pairedDevices) {
+            PairedDevices.PermissionRequired -> {
+                Text(stringResource(R.string.paired_devices_permission_rationale))
+                Button(onClick = onRequestBluetoothPermission) {
+                    Text(stringResource(R.string.paired_devices_allow))
+                }
+                TextButton(onClick = onOpenAppSettings) {
+                    Text(stringResource(R.string.paired_devices_open_settings))
                 }
             }
-        } else {
-            Text(registeredModel.displayName, style = MaterialTheme.typography.bodyLarge)
-            OutlinedButton(onClick = onRemoveRegistration) {
-                Text(stringResource(R.string.remove_registration))
+            PairedDevices.BluetoothUnavailable -> Text(stringResource(R.string.paired_devices_bluetooth_unavailable))
+            PairedDevices.BluetoothOff -> Text(stringResource(R.string.paired_devices_bluetooth_off))
+            is PairedDevices.Available -> {
+                if (pairedDevices.devices.isEmpty()) {
+                    Text(stringResource(R.string.paired_devices_none))
+                }
+                pairedDevices.devices.forEach { PairedDeviceItem(it, onRegister) }
             }
+        }
+    }
+}
+
+@Composable
+private fun PairedDeviceItem(device: PairedDevice, onRegister: (PairedDevice, HeadphoneModel) -> Unit) {
+    val model = findModelForDeviceName(device.name)
+    Column {
+        Text(device.name ?: stringResource(R.string.paired_device_unnamed), style = MaterialTheme.typography.bodyLarge)
+        Monospace(device.address)
+        if (model != null) {
+            Button(onClick = { onRegister(device, model) }) {
+                Text(stringResource(R.string.paired_device_register, model.displayName))
+            }
+        } else {
+            Text(
+                stringResource(R.string.paired_device_unsupported),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -96,7 +157,7 @@ private fun PublishedActionsSection(actions: List<SupportedAction>) {
         actions.forEach { action ->
             Column {
                 Text(action.label, style = MaterialTheme.typography.bodyLarge)
-                ActionId(action.id)
+                Monospace(action.id)
             }
         }
     }
@@ -112,7 +173,7 @@ private fun LastRoutineActionSection(lastAction: LastRoutineAction?, registeredM
         registeredModel?.findAction(lastAction.actionId)?.let {
             Text(it.label, style = MaterialTheme.typography.bodyLarge)
         }
-        ActionId(lastAction.actionId)
+        Monospace(lastAction.actionId)
         val invokedAt = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM)
             .format(Date(lastAction.invokedAtMillis))
         Text(stringResource(R.string.last_routine_action_time, invokedAt))
@@ -128,9 +189,9 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun ActionId(id: String) {
+private fun Monospace(text: String) {
     Text(
-        id,
+        text,
         style = MaterialTheme.typography.bodySmall,
         fontFamily = FontFamily.Monospace,
         color = MaterialTheme.colorScheme.onSurfaceVariant,

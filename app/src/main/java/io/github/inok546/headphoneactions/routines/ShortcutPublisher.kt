@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package app.headphoneactions.routines
+package io.github.inok546.headphoneactions.routines
 
 import android.content.Context
 import android.util.Log
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
-import app.headphoneactions.LOG_TAG
-import app.headphoneactions.R
-import app.headphoneactions.device.HeadphoneModel
-import app.headphoneactions.device.SupportedAction
+import io.github.inok546.headphoneactions.LOG_TAG
+import io.github.inok546.headphoneactions.R
+import io.github.inok546.headphoneactions.device.HeadphoneModel
+import io.github.inok546.headphoneactions.device.SupportedAction
 
 /**
  * Publishes the registered model's actions as app shortcuts, which Samsung Modes and

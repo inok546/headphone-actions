@@ -4,9 +4,20 @@
     <string name="app_name">Headphone Actions</string>
 
     <string name="registered_device_title">Registered device</string>
-    <string name="registered_device_none">None</string>
-    <string name="register_model">Register %1$s</string>
+    <string name="registered_device_none">None. Choose your headphones among the paired devices below.</string>
+    <string name="registered_device_model">Model: %1$s</string>
     <string name="remove_registration">Remove registration</string>
+
+    <string name="paired_devices_title">Paired devices</string>
+    <string name="paired_devices_permission_rationale">Allow the Nearby devices permission so Headphone Actions can list the Bluetooth devices paired with this phone.</string>
+    <string name="paired_devices_allow">Allow</string>
+    <string name="paired_devices_open_settings">Open app settings</string>
+    <string name="paired_devices_bluetooth_unavailable">This phone has no Bluetooth.</string>
+    <string name="paired_devices_bluetooth_off">Turn on Bluetooth to see the paired devices.</string>
+    <string name="paired_devices_none">No paired devices. Pair your headphones in the Bluetooth settings first.</string>
+    <string name="paired_device_unnamed">Unnamed device</string>
+    <string name="paired_device_unsupported">Not supported</string>
+    <string name="paired_device_register">Register as %1$s</string>
 
     <string name="published_actions_title">Published actions</string>
     <string name="published_actions_none">No actions published</string>
