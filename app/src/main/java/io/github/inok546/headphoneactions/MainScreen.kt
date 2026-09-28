@@ -221,6 +221,14 @@ private fun LastRoutineActionSection(lastAction: LastRoutineAction?, registeredM
         val invokedAt = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM)
             .format(Date(lastAction.invokedAtMillis))
         Text(stringResource(R.string.last_routine_action_time, invokedAt))
+        when (val result = lastAction.result) {
+            null -> Text(stringResource(R.string.last_routine_action_pending))
+            is DeviceResult.Success -> Text(stringResource(R.string.last_routine_action_success, result.details))
+            is DeviceResult.Failure -> Text(
+                stringResource(R.string.last_routine_action_failure, result.reason),
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
     }
 }
 

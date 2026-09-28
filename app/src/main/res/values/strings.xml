@@ -32,4 +32,11 @@
     <string name="last_routine_action_title">Last routine action</string>
     <string name="last_routine_action_none">No routine action received yet</string>
     <string name="last_routine_action_time">Received %1$s</string>
+    <string name="last_routine_action_pending">Result: not received</string>
+    <string name="last_routine_action_success">Result: %1$s</string>
+    <string name="last_routine_action_failure">Failed: %1$s</string>
+
+    <string name="notification_channel_actions">Headphone actions</string>
+    <string name="routine_action_running">Running a headphone action…</string>
+    <string name="routine_action_failed">%1$s failed: %2$s</string>
 </resources>

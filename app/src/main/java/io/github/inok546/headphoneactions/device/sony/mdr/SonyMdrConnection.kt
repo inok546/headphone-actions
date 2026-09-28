@@ -49,7 +49,9 @@ object SonyMdrConnection {
     // The headphones sometimes ignore the first init request.
     private const val INIT_ATTEMPTS = 3
     private const val INIT_REPLY_TIMEOUT_MS = 1250L
-    private const val CONNECT_TIMEOUT_MS = 15_000L
+    // An unreachable device then fails before the 10 s after which Android would show the
+    // notification of the foreground service running a routine action.
+    private const val CONNECT_TIMEOUT_MS = 8_000L
 
     suspend fun open(
         context: Context,

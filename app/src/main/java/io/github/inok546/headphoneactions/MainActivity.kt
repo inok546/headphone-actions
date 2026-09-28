@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import io.github.inok546.headphoneactions.bluetooth.PairedDevice
 import io.github.inok546.headphoneactions.bluetooth.readPairedDevices
+import io.github.inok546.headphoneactions.device.DeviceAccess
 import io.github.inok546.headphoneactions.device.DeviceResult
 import io.github.inok546.headphoneactions.device.HeadphoneModel
 import io.github.inok546.headphoneactions.device.RegisteredDevice
@@ -102,7 +103,7 @@ class MainActivity : ComponentActivity() {
         uiState = uiState.copy(deviceOperation = DeviceOperation(title))
         lifecycleScope.launch {
             Log.i(LOG_TAG, "$title: starting for $device")
-            val result = operation(model, device)
+            val result = DeviceAccess.exclusive { operation(model, device) }
             Log.i(LOG_TAG, "$title: $result")
             uiState = uiState.copy(deviceOperation = DeviceOperation(title, result))
         }
