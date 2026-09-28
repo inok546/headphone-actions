@@ -30,3 +30,7 @@ Protocol facts, no code, were also taken from:
 - BudsLink (https://github.com/maniacx/BudsLink, GPL-3.0), `src/lib/devices/sony/`: confirms
   that the WH-1000XM6 uses the noise control type `0x19` and supports Speak-to-Chat and audio
   upsampling (DSEE) with the layouts used in `device/sony/mdr/SonyMdrSwitch.kt`.
+- Gadgetbridge pull request #6517 (https://codeberg.org/Freeyourgadget/Gadgetbridge/pulls/6517,
+  work in progress, multipoint for the WH-1000XM5) and BudsLink `src/lib/devices/sony/sonySocketV2.js`:
+  the multipoint opcodes (0x36–0x3D on message type COMMAND_2) and payload layouts used in
+  `device/sony/mdr/SonyMultipoint.kt`.

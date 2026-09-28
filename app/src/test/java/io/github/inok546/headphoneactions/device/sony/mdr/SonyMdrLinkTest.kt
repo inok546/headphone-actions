@@ -47,6 +47,13 @@ class SonyMdrLinkTest {
     }
 
     @Test
+    fun `commands of the second table use message type COMMAND_2`() {
+        link.send(bytes(0x36, 0x00), SonyMdrMessage.TYPE_COMMAND_2)
+
+        assertEquals(listOf("type=0e seq=0 payload=[36:00]"), sent())
+    }
+
+    @Test
     fun `an ACK arriving after the reply is awaited before the next command`() = runBlocking {
         link.send(bytes(0x00, 0x00))
         incoming.send(command(sequence = 0, 0x01, 0x00))

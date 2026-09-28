@@ -23,6 +23,8 @@ import io.github.inok546.headphoneactions.device.DeviceAccess
 import io.github.inok546.headphoneactions.device.DeviceResult
 import io.github.inok546.headphoneactions.device.HeadphoneModel
 import io.github.inok546.headphoneactions.device.RegisteredDevice
+import io.github.inok546.headphoneactions.device.SourceDevice
+import io.github.inok546.headphoneactions.device.SourceDevicesResult
 import io.github.inok546.headphoneactions.device.SupportedAction
 import io.github.inok546.headphoneactions.device.findModel
 import io.github.inok546.headphoneactions.routines.ShortcutPublisher
@@ -52,6 +54,8 @@ class MainActivity : ComponentActivity() {
                     onRegister = ::register,
                     onTestConnection = ::testConnection,
                     onRunAction = ::runAction,
+                    onReadSourceDevices = ::readSourceDevices,
+                    onChooseThisPhone = ::chooseThisPhone,
                     onRemoveRegistration = ::removeRegistration,
                 )
             }
@@ -93,6 +97,24 @@ class MainActivity : ComponentActivity() {
         model.execute(applicationContext, device, action)
     }
 
+    private fun readSourceDevices() = runDeviceOperation(getString(R.string.read_source_devices)) { model, device ->
+        when (val result = model.readSourceDevices(applicationContext, device)) {
+            is SourceDevicesResult.Success -> {
+                uiState = uiState.copy(sourceDevices = result.devices)
+                DeviceResult.Success("${result.devices.size} devices; pick this phone below")
+            }
+            is SourceDevicesResult.Failure -> DeviceResult.Failure(result.reason)
+        }
+    }
+
+    private fun chooseThisPhone(source: SourceDevice) {
+        val device = preferences.registeredDevice ?: return
+        preferences.registeredDevice = device.copy(phoneAddress = source.address, phoneName = source.name)
+        Log.i(LOG_TAG, "This phone on the headphones: ${source.name} [${source.address}]")
+        uiState = uiState.copy(sourceDevices = null, deviceOperation = null)
+        refresh()
+    }
+
     /** Explicit user actions only: the app never connects to the headphones on its own. */
     private fun runDeviceOperation(
         title: String,
@@ -113,7 +135,7 @@ class MainActivity : ComponentActivity() {
         preferences.registeredDevice = null
         Log.i(LOG_TAG, "Registration removed")
         ShortcutPublisher.removeAll(this)
-        uiState = uiState.copy(deviceOperation = null)
+        uiState = uiState.copy(deviceOperation = null, sourceDevices = null)
         refresh()
     }
 

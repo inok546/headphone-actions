@@ -21,12 +21,20 @@ class AppPreferences(context: Context) {
             val address = prefs.getString(KEY_DEVICE_ADDRESS, null) ?: return null
             val name = prefs.getString(KEY_DEVICE_NAME, null) ?: return null
             val modelId = prefs.getString(KEY_DEVICE_MODEL_ID, null) ?: return null
-            return RegisteredDevice(address, name, modelId)
+            return RegisteredDevice(
+                address,
+                name,
+                modelId,
+                phoneAddress = prefs.getString(KEY_DEVICE_PHONE_ADDRESS, null),
+                phoneName = prefs.getString(KEY_DEVICE_PHONE_NAME, null),
+            )
         }
         set(value) = prefs.edit {
             putString(KEY_DEVICE_ADDRESS, value?.address)
             putString(KEY_DEVICE_NAME, value?.name)
             putString(KEY_DEVICE_MODEL_ID, value?.modelId)
+            putString(KEY_DEVICE_PHONE_ADDRESS, value?.phoneAddress)
+            putString(KEY_DEVICE_PHONE_NAME, value?.phoneName)
         }
 
     val lastRoutineAction: LastRoutineAction?
@@ -69,6 +77,8 @@ class AppPreferences(context: Context) {
         const val KEY_DEVICE_ADDRESS = "registered_device_address"
         const val KEY_DEVICE_NAME = "registered_device_name"
         const val KEY_DEVICE_MODEL_ID = "registered_device_model_id"
+        const val KEY_DEVICE_PHONE_ADDRESS = "registered_device_phone_address"
+        const val KEY_DEVICE_PHONE_NAME = "registered_device_phone_name"
         const val KEY_LAST_ACTION_ID = "last_routine_action_id"
         const val KEY_LAST_ACTION_AT = "last_routine_action_at"
         const val KEY_LAST_ACTION_SUCCEEDED = "last_routine_action_succeeded"

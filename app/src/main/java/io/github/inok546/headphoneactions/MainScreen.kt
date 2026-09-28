@@ -29,6 +29,7 @@ import io.github.inok546.headphoneactions.bluetooth.PairedDevices
 import io.github.inok546.headphoneactions.device.DeviceResult
 import io.github.inok546.headphoneactions.device.HeadphoneModel
 import io.github.inok546.headphoneactions.device.RegisteredDevice
+import io.github.inok546.headphoneactions.device.SourceDevice
 import io.github.inok546.headphoneactions.device.SupportedAction
 import io.github.inok546.headphoneactions.device.findModelForDeviceName
 import java.text.DateFormat
@@ -42,6 +43,8 @@ data class MainUiState(
     val publishedActions: List<SupportedAction> = emptyList(),
     val lastRoutineAction: LastRoutineAction? = null,
     val deviceOperation: DeviceOperation? = null,
+    /** The headphones' source devices while the user picks this phone among them. */
+    val sourceDevices: List<SourceDevice>? = null,
 ) {
     val deviceBusy: Boolean get() = deviceOperation != null && deviceOperation.result == null
 }
@@ -65,6 +68,8 @@ fun MainScreen(
     onRegister: (PairedDevice, HeadphoneModel) -> Unit,
     onTestConnection: () -> Unit,
     onRunAction: (SupportedAction) -> Unit,
+    onReadSourceDevices: () -> Unit,
+    onChooseThisPhone: (SourceDevice) -> Unit,
     onRemoveRegistration: () -> Unit,
 ) {
     Scaffold { innerPadding ->
@@ -80,6 +85,15 @@ fun MainScreen(
             RegistrationSection(state.registeredDevice, state.registeredModel, onRemoveRegistration)
             if (state.registeredDevice != null) {
                 ControlSection(state.deviceOperation, state.deviceBusy, onTestConnection)
+            }
+            if (state.registeredDevice != null && state.registeredModel?.supportsMultipoint == true) {
+                MultipointSection(
+                    state.registeredDevice,
+                    state.sourceDevices,
+                    state.deviceBusy,
+                    onReadSourceDevices,
+                    onChooseThisPhone,
+                )
             }
             state.pairedDevices?.let {
                 PairedDevicesSection(it, onRequestBluetoothPermission, onOpenAppSettings, onRegister)
@@ -129,6 +143,54 @@ private fun ControlSection(operation: DeviceOperation?, busy: Boolean, onTestCon
                 stringResource(R.string.operation_failure, operation.title, result.reason),
                 color = MaterialTheme.colorScheme.error,
             )
+        }
+    }
+}
+
+@Composable
+private fun MultipointSection(
+    device: RegisteredDevice,
+    sourceDevices: List<SourceDevice>?,
+    busy: Boolean,
+    onReadSourceDevices: () -> Unit,
+    onChooseThisPhone: (SourceDevice) -> Unit,
+) {
+    Section(stringResource(R.string.multipoint_title)) {
+        if (device.phoneAddress == null) {
+            Text(stringResource(R.string.this_phone_not_chosen))
+        } else {
+            Column {
+                Text(stringResource(R.string.this_phone_chosen, device.phoneName ?: device.phoneAddress))
+                Monospace(device.phoneAddress)
+            }
+        }
+        OutlinedButton(onClick = onReadSourceDevices, enabled = !busy) {
+            Text(stringResource(R.string.choose_this_phone))
+        }
+        if (sourceDevices?.isEmpty() == true) {
+            Text(stringResource(R.string.source_devices_none))
+        }
+        sourceDevices?.forEach { source ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(source.name, style = MaterialTheme.typography.bodyLarge)
+                    Monospace(source.address)
+                    Text(
+                        stringResource(
+                            when {
+                                source.playing -> R.string.source_device_playing
+                                source.connected -> R.string.source_device_connected
+                                else -> R.string.source_device_disconnected
+                            },
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                TextButton(onClick = { onChooseThisPhone(source) }) {
+                    Text(stringResource(R.string.this_is_my_phone))
+                }
+            }
         }
     }
 }

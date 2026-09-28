@@ -19,6 +19,14 @@ sealed interface DeviceResult {
     data class Failure(val reason: String) : DeviceResult
 }
 
+/** A source device the headphones know (multipoint), identified by the address they report. */
+data class SourceDevice(val address: String, val name: String, val connected: Boolean, val playing: Boolean)
+
+sealed interface SourceDevicesResult {
+    data class Success(val devices: List<SourceDevice>) : SourceDevicesResult
+    data class Failure(val reason: String) : SourceDevicesResult
+}
+
 /**
  * Support for one headphone model: how to recognize it among paired devices, which actions
  * it exposes and how to talk to it. Vendor protocol details stay behind this interface.
@@ -36,6 +44,15 @@ interface HeadphoneModel {
 
     /** Connects to [device], performs [action] and disconnects. */
     suspend fun execute(context: Context, device: RegisteredDevice, action: SupportedAction): DeviceResult
+
+    /**
+     * Whether the headphones can play from one of two connected source devices. Some of their
+     * actions then need to know which source is this phone ([RegisteredDevice.phoneAddress]).
+     */
+    val supportsMultipoint: Boolean
+
+    /** Connects to [device], reads the source devices it knows and disconnects. */
+    suspend fun readSourceDevices(context: Context, device: RegisteredDevice): SourceDevicesResult
 
     fun findAction(actionId: String): SupportedAction? = actions.find { it.id == actionId }
 }

@@ -14,6 +14,17 @@
     <string name="operation_success">%1$s: %2$s</string>
     <string name="operation_failure">%1$s failed: %2$s</string>
 
+    <string name="multipoint_title">Multipoint</string>
+    <string name="this_phone_not_chosen">This phone: not chosen. “Play on This Phone” and “Play on Other Device” need to know which of the headphones’ devices is this phone.</string>
+    <string name="this_phone_chosen">This phone: %1$s</string>
+    <string name="choose_this_phone">Choose this phone</string>
+    <string name="read_source_devices">Device list</string>
+    <string name="source_devices_none">The headphones reported no devices.</string>
+    <string name="source_device_playing">Connected, playing</string>
+    <string name="source_device_connected">Connected</string>
+    <string name="source_device_disconnected">Not connected</string>
+    <string name="this_is_my_phone">This is my phone</string>
+
     <string name="paired_devices_title">Paired devices</string>
     <string name="paired_devices_permission_rationale">Allow the Nearby devices permission so Headphone Actions can list the Bluetooth devices paired with this phone.</string>
     <string name="paired_devices_allow">Allow</string>

@@ -57,16 +57,24 @@ object SonyMdrConnection {
         context: Context,
         address: String,
         operation: suspend (SonyMdrSession) -> DeviceResult,
-    ): DeviceResult = withContext(Dispatchers.IO) {
+    ): DeviceResult = open(context, address, { DeviceResult.Failure(it) }, operation)
+
+    /** Like [open] for operations with their own result type; [failure] turns a connection problem into one. */
+    suspend fun <T> open(
+        context: Context,
+        address: String,
+        failure: (String) -> T,
+        operation: suspend (SonyMdrSession) -> T,
+    ): T = withContext(Dispatchers.IO) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) !=
             PackageManager.PERMISSION_GRANTED
         ) {
-            return@withContext DeviceResult.Failure("Nearby devices permission is not granted")
+            return@withContext failure("Nearby devices permission is not granted")
         }
         val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter
-            ?: return@withContext DeviceResult.Failure("Bluetooth is not available")
-        if (!adapter.isEnabled) return@withContext DeviceResult.Failure("Bluetooth is off")
+            ?: return@withContext failure("Bluetooth is not available")
+        if (!adapter.isEnabled) return@withContext failure("Bluetooth is off")
 
         val device = adapter.getRemoteDevice(address)
         var socket: BluetoothSocket? = null
@@ -74,13 +82,13 @@ object SonyMdrConnection {
             socket = device.createRfcommSocketToServiceRecord(chooseServiceUuid(device))
             connect(socket)
             Log.i(LOG_TAG, "Sony RFCOMM connected to $address")
-            runSession(socket, operation)
+            runSession(socket, failure, operation)
         } catch (e: IOException) {
             Log.w(LOG_TAG, "Sony RFCOMM connection to $address failed", e)
-            DeviceResult.Failure("RFCOMM connection failed: ${e.message}")
+            failure("RFCOMM connection failed: ${e.message}")
         } catch (e: SecurityException) {
             Log.w(LOG_TAG, "Sony RFCOMM connection to $address not permitted", e)
-            DeviceResult.Failure("Bluetooth access denied: ${e.message}")
+            failure("Bluetooth access denied: ${e.message}")
         } finally {
             socket?.close()
             Log.i(LOG_TAG, "Sony RFCOMM closed")
@@ -116,19 +124,20 @@ object SonyMdrConnection {
         }
     }
 
-    private suspend fun runSession(
+    private suspend fun <T> runSession(
         socket: BluetoothSocket,
-        operation: suspend (SonyMdrSession) -> DeviceResult,
-    ): DeviceResult = coroutineScope {
+        failure: (String) -> T,
+        operation: suspend (SonyMdrSession) -> T,
+    ): T = coroutineScope {
         val incoming = Channel<SonyMdrMessage>(Channel.UNLIMITED)
         val reader = launch { readMessages(socket.inputStream, incoming) }
         try {
             val link = SonyMdrLink(socket.outputStream, incoming)
             val initReply = requestInit(link)
-                ?: return@coroutineScope DeviceResult.Failure("No reply to the init request")
+                ?: return@coroutineScope failure("No reply to the init request")
             operation(SonyMdrSession(link, initReply.payload))
         } catch (e: ClosedReceiveChannelException) {
-            DeviceResult.Failure("The headphones closed the connection")
+            failure("The headphones closed the connection")
         } finally {
             socket.close() // Unblocks the reader.
             reader.cancel()

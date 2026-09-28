@@ -21,6 +21,10 @@ class SonyWh1000xm6Test {
                 "sony.wh1000xm6.speak_to_chat.off",
                 "sony.wh1000xm6.dsee.on",
                 "sony.wh1000xm6.dsee.off",
+                "sony.wh1000xm6.playback.lock_this_phone",
+                "sony.wh1000xm6.playback.lock_other_device",
+                "sony.wh1000xm6.playback.lock_current",
+                "sony.wh1000xm6.playback.auto_switch",
             ),
             SonyWh1000xm6.actions.map { it.id },
         )
