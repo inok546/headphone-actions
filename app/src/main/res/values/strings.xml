@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPDX-License-Identifier: AGPL-3.0-only -->
+<resources>
+    <string name="app_name">Headphone Actions</string>
+
+    <string name="registered_device_title">Registered device</string>
+    <string name="registered_device_none">None</string>
+    <string name="register_model">Register %1$s</string>
+    <string name="remove_registration">Remove registration</string>
+
+    <string name="published_actions_title">Published actions</string>
+    <string name="published_actions_none">No actions published</string>
+
+    <string name="last_routine_action_title">Last routine action</string>
+    <string name="last_routine_action_none">No routine action received yet</string>
+    <string name="last_routine_action_time">Received %1$s</string>
+</resources>

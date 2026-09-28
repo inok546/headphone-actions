@@ -27,3 +27,18 @@ replay_pid*
 .kotlin/
 
 CLAUDE.md
+
+# Gradle Wrapper jar must be committed despite the *.jar rule above
+!gradle/wrapper/gradle-wrapper.jar
+
+# Gradle / Android build output
+.gradle/
+build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
