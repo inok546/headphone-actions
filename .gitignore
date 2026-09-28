@@ -42,3 +42,6 @@ captures/
 # IDE
 .idea/
 *.iml
+
+# Local notes
+TODO.md
