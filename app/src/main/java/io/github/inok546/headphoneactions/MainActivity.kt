@@ -19,8 +19,10 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.lifecycleScope
 import io.github.inok546.headphoneactions.bluetooth.PairedDevice
 import io.github.inok546.headphoneactions.bluetooth.readPairedDevices
+import io.github.inok546.headphoneactions.device.DeviceResult
 import io.github.inok546.headphoneactions.device.HeadphoneModel
 import io.github.inok546.headphoneactions.device.RegisteredDevice
+import io.github.inok546.headphoneactions.device.SupportedAction
 import io.github.inok546.headphoneactions.device.findModel
 import io.github.inok546.headphoneactions.routines.ShortcutPublisher
 import kotlinx.coroutines.launch
@@ -48,6 +50,7 @@ class MainActivity : ComponentActivity() {
                     onOpenAppSettings = ::openAppSettings,
                     onRegister = ::register,
                     onTestConnection = ::testConnection,
+                    onRunAction = ::runAction,
                     onRemoveRegistration = ::removeRegistration,
                 )
             }
@@ -81,16 +84,27 @@ class MainActivity : ComponentActivity() {
         refresh()
     }
 
-    /** Explicit user action only: the app never connects to the headphones on its own. */
-    private fun testConnection() {
+    private fun testConnection() = runDeviceOperation(getString(R.string.test_connection)) { model, device ->
+        model.testConnection(applicationContext, device)
+    }
+
+    private fun runAction(action: SupportedAction) = runDeviceOperation(action.label) { model, device ->
+        model.execute(applicationContext, device, action)
+    }
+
+    /** Explicit user actions only: the app never connects to the headphones on its own. */
+    private fun runDeviceOperation(
+        title: String,
+        operation: suspend (HeadphoneModel, RegisteredDevice) -> DeviceResult,
+    ) {
         val device = preferences.registeredDevice ?: return
         val model = findModel(device.modelId) ?: return
-        uiState = uiState.copy(connectionTestRunning = true, connectionTestResult = null)
+        uiState = uiState.copy(deviceOperation = DeviceOperation(title))
         lifecycleScope.launch {
-            Log.i(LOG_TAG, "Testing connection to $device")
-            val result = model.testConnection(applicationContext, device)
-            Log.i(LOG_TAG, "Connection test result: $result")
-            uiState = uiState.copy(connectionTestRunning = false, connectionTestResult = result)
+            Log.i(LOG_TAG, "$title: starting for $device")
+            val result = operation(model, device)
+            Log.i(LOG_TAG, "$title: $result")
+            uiState = uiState.copy(deviceOperation = DeviceOperation(title, result))
         }
     }
 
@@ -98,7 +112,7 @@ class MainActivity : ComponentActivity() {
         preferences.registeredDevice = null
         Log.i(LOG_TAG, "Registration removed")
         ShortcutPublisher.removeAll(this)
-        uiState = uiState.copy(connectionTestResult = null)
+        uiState = uiState.copy(deviceOperation = null)
         refresh()
     }
 

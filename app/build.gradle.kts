@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.inok546.headphoneactions"
         minSdk = 26
         targetSdk = 36
-        versionCode = 3
-        versionName = "0.3.0"
+        versionCode = 4
+        versionName = "0.4.0"
     }
 
     compileOptions {
@@ -24,6 +24,11 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    // Lets JVM unit tests run code that logs through android.util.Log.
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 

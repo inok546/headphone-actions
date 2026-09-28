@@ -8,11 +8,11 @@
     <string name="registered_device_model">Model: %1$s</string>
     <string name="remove_registration">Remove registration</string>
 
-    <string name="connection_title">Connection</string>
-    <string name="connection_test">Test connection</string>
-    <string name="connection_test_running">Connecting to the headphones…</string>
-    <string name="connection_test_success">Connected. %1$s</string>
-    <string name="connection_test_failure">Failed: %1$s</string>
+    <string name="control_title">Control</string>
+    <string name="test_connection">Test connection</string>
+    <string name="operation_running">%1$s: working…</string>
+    <string name="operation_success">%1$s: %2$s</string>
+    <string name="operation_failure">%1$s failed: %2$s</string>
 
     <string name="paired_devices_title">Paired devices</string>
     <string name="paired_devices_permission_rationale">Allow the Nearby devices permission so Headphone Actions can list the Bluetooth devices paired with this phone.</string>
@@ -27,6 +27,7 @@
 
     <string name="published_actions_title">Published actions</string>
     <string name="published_actions_none">No actions published</string>
+    <string name="run_action">Run</string>
 
     <string name="last_routine_action_title">Last routine action</string>
     <string name="last_routine_action_none">No routine action received yet</string>

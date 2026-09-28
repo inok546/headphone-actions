@@ -13,9 +13,10 @@ import io.github.inok546.headphoneactions.device.sony.SonyWh1000xm6
  */
 data class SupportedAction(val id: String, val label: String)
 
-sealed interface ConnectionTestResult {
-    data class Success(val details: String) : ConnectionTestResult
-    data class Failure(val reason: String) : ConnectionTestResult
+/** Outcome of talking to the headphones; the texts are shown to the user. */
+sealed interface DeviceResult {
+    data class Success(val details: String) : DeviceResult
+    data class Failure(val reason: String) : DeviceResult
 }
 
 /**
@@ -31,7 +32,10 @@ interface HeadphoneModel {
     fun matchesDeviceName(name: String): Boolean
 
     /** Connects to [device], performs the protocol handshake and disconnects. */
-    suspend fun testConnection(context: Context, device: RegisteredDevice): ConnectionTestResult
+    suspend fun testConnection(context: Context, device: RegisteredDevice): DeviceResult
+
+    /** Connects to [device], performs [action] and disconnects. */
+    suspend fun execute(context: Context, device: RegisteredDevice, action: SupportedAction): DeviceResult
 
     fun findAction(actionId: String): SupportedAction? = actions.find { it.id == actionId }
 }

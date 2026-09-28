@@ -5,6 +5,7 @@ package io.github.inok546.headphoneactions
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -18,13 +19,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.github.inok546.headphoneactions.bluetooth.PairedDevice
 import io.github.inok546.headphoneactions.bluetooth.PairedDevices
-import io.github.inok546.headphoneactions.device.ConnectionTestResult
+import io.github.inok546.headphoneactions.device.DeviceResult
 import io.github.inok546.headphoneactions.device.HeadphoneModel
 import io.github.inok546.headphoneactions.device.RegisteredDevice
 import io.github.inok546.headphoneactions.device.SupportedAction
@@ -39,9 +41,13 @@ data class MainUiState(
     val pairedDevices: PairedDevices? = null,
     val publishedActions: List<SupportedAction> = emptyList(),
     val lastRoutineAction: LastRoutineAction? = null,
-    val connectionTestRunning: Boolean = false,
-    val connectionTestResult: ConnectionTestResult? = null,
-)
+    val deviceOperation: DeviceOperation? = null,
+) {
+    val deviceBusy: Boolean get() = deviceOperation != null && deviceOperation.result == null
+}
+
+/** The last explicit operation on the headphones; [result] is null while it runs. */
+data class DeviceOperation(val title: String, val result: DeviceResult? = null)
 
 @Composable
 fun AppTheme(content: @Composable () -> Unit) {
@@ -58,6 +64,7 @@ fun MainScreen(
     onOpenAppSettings: () -> Unit,
     onRegister: (PairedDevice, HeadphoneModel) -> Unit,
     onTestConnection: () -> Unit,
+    onRunAction: (SupportedAction) -> Unit,
     onRemoveRegistration: () -> Unit,
 ) {
     Scaffold { innerPadding ->
@@ -72,12 +79,16 @@ fun MainScreen(
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
             RegistrationSection(state.registeredDevice, state.registeredModel, onRemoveRegistration)
             if (state.registeredDevice != null) {
-                ConnectionTestSection(state.connectionTestRunning, state.connectionTestResult, onTestConnection)
+                ControlSection(state.deviceOperation, state.deviceBusy, onTestConnection)
             }
             state.pairedDevices?.let {
                 PairedDevicesSection(it, onRequestBluetoothPermission, onOpenAppSettings, onRegister)
             }
-            PublishedActionsSection(state.publishedActions)
+            PublishedActionsSection(
+                state.publishedActions,
+                runEnabled = state.registeredDevice != null && !state.deviceBusy,
+                onRunAction = onRunAction,
+            )
             LastRoutineActionSection(state.lastRoutineAction, state.registeredModel)
         }
     }
@@ -106,24 +117,18 @@ private fun RegistrationSection(
 }
 
 @Composable
-private fun ConnectionTestSection(
-    running: Boolean,
-    result: ConnectionTestResult?,
-    onTestConnection: () -> Unit,
-) {
-    Section(stringResource(R.string.connection_title)) {
-        Button(onClick = onTestConnection, enabled = !running) {
-            Text(stringResource(R.string.connection_test))
+private fun ControlSection(operation: DeviceOperation?, busy: Boolean, onTestConnection: () -> Unit) {
+    Section(stringResource(R.string.control_title)) {
+        Button(onClick = onTestConnection, enabled = !busy) {
+            Text(stringResource(R.string.test_connection))
         }
-        when {
-            running -> Text(stringResource(R.string.connection_test_running))
-            result is ConnectionTestResult.Success ->
-                Text(stringResource(R.string.connection_test_success, result.details))
-            result is ConnectionTestResult.Failure ->
-                Text(
-                    stringResource(R.string.connection_test_failure, result.reason),
-                    color = MaterialTheme.colorScheme.error,
-                )
+        when (val result = operation?.result) {
+            null -> if (operation != null) Text(stringResource(R.string.operation_running, operation.title))
+            is DeviceResult.Success -> Text(stringResource(R.string.operation_success, operation.title, result.details))
+            is DeviceResult.Failure -> Text(
+                stringResource(R.string.operation_failure, operation.title, result.reason),
+                color = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }
@@ -179,15 +184,24 @@ private fun PairedDeviceItem(device: PairedDevice, onRegister: (PairedDevice, He
 }
 
 @Composable
-private fun PublishedActionsSection(actions: List<SupportedAction>) {
+private fun PublishedActionsSection(
+    actions: List<SupportedAction>,
+    runEnabled: Boolean,
+    onRunAction: (SupportedAction) -> Unit,
+) {
     Section(stringResource(R.string.published_actions_title)) {
         if (actions.isEmpty()) {
             Text(stringResource(R.string.published_actions_none))
         }
         actions.forEach { action ->
-            Column {
-                Text(action.label, style = MaterialTheme.typography.bodyLarge)
-                Monospace(action.id)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(action.label, style = MaterialTheme.typography.bodyLarge)
+                    Monospace(action.id)
+                }
+                TextButton(onClick = { onRunAction(action) }, enabled = runEnabled) {
+                    Text(stringResource(R.string.run_action))
+                }
             }
         }
     }

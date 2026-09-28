@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 //
-// The RFCOMM service UUIDs, the init request with its retries, protocol version detection
-// and the ACK / sequence number rules follow Gadgetbridge
+// The RFCOMM service UUIDs and the init request with its retries follow Gadgetbridge
 // (https://codeberg.org/Freeyourgadget/Gadgetbridge), files
 // service/devices/sony/headphones/SonyHeadphonesSupport.java:
 //   Copyright (C) 2021-2024 Arjan Schrijver, José Rebelo
@@ -22,11 +21,10 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import io.github.inok546.headphoneactions.LOG_TAG
-import io.github.inok546.headphoneactions.device.ConnectionTestResult
+import io.github.inok546.headphoneactions.device.DeviceResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ClosedReceiveChannelException
-import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -34,14 +32,13 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import java.io.InputStream
-import java.io.OutputStream
 import java.util.UUID
 
 /**
- * Opens the Sony MDR RFCOMM channel, performs the init handshake and closes the channel.
- * This proves the transport; commands come later.
+ * Short-lived Sony MDR connections: open the RFCOMM channel, perform the init handshake,
+ * run one operation and close the channel again.
  */
-object SonyMdrHandshake {
+object SonyMdrConnection {
 
     private val SERVICE_UUID_V1 = UUID.fromString("96CC203E-5068-46ad-B32D-E316F5E069BA")
     private val SERVICE_UUID_V2 = UUID.fromString("956C7B26-D49A-4BA8-B03F-B17D393CB6E2")
@@ -54,16 +51,20 @@ object SonyMdrHandshake {
     private const val INIT_REPLY_TIMEOUT_MS = 1250L
     private const val CONNECT_TIMEOUT_MS = 15_000L
 
-    suspend fun run(context: Context, address: String): ConnectionTestResult = withContext(Dispatchers.IO) {
+    suspend fun open(
+        context: Context,
+        address: String,
+        operation: suspend (SonyMdrSession) -> DeviceResult,
+    ): DeviceResult = withContext(Dispatchers.IO) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) !=
             PackageManager.PERMISSION_GRANTED
         ) {
-            return@withContext ConnectionTestResult.Failure("Nearby devices permission is not granted")
+            return@withContext DeviceResult.Failure("Nearby devices permission is not granted")
         }
         val adapter = context.getSystemService(BluetoothManager::class.java)?.adapter
-            ?: return@withContext ConnectionTestResult.Failure("Bluetooth is not available")
-        if (!adapter.isEnabled) return@withContext ConnectionTestResult.Failure("Bluetooth is off")
+            ?: return@withContext DeviceResult.Failure("Bluetooth is not available")
+        if (!adapter.isEnabled) return@withContext DeviceResult.Failure("Bluetooth is off")
 
         val device = adapter.getRemoteDevice(address)
         var socket: BluetoothSocket? = null
@@ -71,20 +72,20 @@ object SonyMdrHandshake {
             socket = device.createRfcommSocketToServiceRecord(chooseServiceUuid(device))
             connect(socket)
             Log.i(LOG_TAG, "Sony RFCOMM connected to $address")
-            handshake(socket)
+            runSession(socket, operation)
         } catch (e: IOException) {
             Log.w(LOG_TAG, "Sony RFCOMM connection to $address failed", e)
-            ConnectionTestResult.Failure("RFCOMM connection failed: ${e.message}")
+            DeviceResult.Failure("RFCOMM connection failed: ${e.message}")
         } catch (e: SecurityException) {
             Log.w(LOG_TAG, "Sony RFCOMM connection to $address not permitted", e)
-            ConnectionTestResult.Failure("Bluetooth access denied: ${e.message}")
+            DeviceResult.Failure("Bluetooth access denied: ${e.message}")
         } finally {
             socket?.close()
             Log.i(LOG_TAG, "Sony RFCOMM closed")
         }
     }
 
-    @SuppressLint("MissingPermission") // Checked in run().
+    @SuppressLint("MissingPermission") // Checked in open().
     private fun chooseServiceUuid(device: BluetoothDevice): UUID {
         val advertised = device.uuids?.map { it.uuid }.orEmpty()
         Log.d(LOG_TAG, "Device service UUIDs: $advertised")
@@ -99,7 +100,7 @@ object SonyMdrHandshake {
     }
 
     /** Blocks until connected; closing the socket from the watchdog aborts a hanging attempt. */
-    @SuppressLint("MissingPermission") // Checked in run().
+    @SuppressLint("MissingPermission") // Checked in open().
     private suspend fun connect(socket: BluetoothSocket) = coroutineScope {
         val watchdog = launch {
             delay(CONNECT_TIMEOUT_MS)
@@ -113,43 +114,37 @@ object SonyMdrHandshake {
         }
     }
 
-    private suspend fun handshake(socket: BluetoothSocket): ConnectionTestResult = coroutineScope {
+    private suspend fun runSession(
+        socket: BluetoothSocket,
+        operation: suspend (SonyMdrSession) -> DeviceResult,
+    ): DeviceResult = coroutineScope {
         val incoming = Channel<SonyMdrMessage>(Channel.UNLIMITED)
         val reader = launch { readMessages(socket.inputStream, incoming) }
         try {
-            val link = MdrLink(socket.outputStream, incoming)
-            val reply = requestInit(link)
-                ?: return@coroutineScope ConnectionTestResult.Failure("No reply to the init request")
-            ConnectionTestResult.Success("Sony MDR protocol ${protocolVersion(reply)}, init reply ${reply.payload.toHex()}")
+            val link = SonyMdrLink(socket.outputStream, incoming)
+            val initReply = requestInit(link)
+                ?: return@coroutineScope DeviceResult.Failure("No reply to the init request")
+            operation(SonyMdrSession(link, initReply.payload))
         } catch (e: ClosedReceiveChannelException) {
-            ConnectionTestResult.Failure("The headphones closed the connection")
+            DeviceResult.Failure("The headphones closed the connection")
         } finally {
             socket.close() // Unblocks the reader.
             reader.cancel()
         }
     }
 
-    private suspend fun requestInit(link: MdrLink): SonyMdrMessage? {
+    private suspend fun requestInit(link: SonyMdrLink): SonyMdrMessage? {
         repeat(INIT_ATTEMPTS) { attempt ->
-            link.send(SonyMdrMessage.TYPE_COMMAND_1, INIT_REQUEST)
+            link.send(INIT_REQUEST)
             val reply = withTimeoutOrNull(INIT_REPLY_TIMEOUT_MS) {
-                var message: SonyMdrMessage
-                do {
-                    message = link.receiveCommand()
-                } while (message.type != SonyMdrMessage.TYPE_COMMAND_1 || message.payload.firstOrNull() != INIT_REPLY)
-                message
+                link.awaitCommand {
+                    it.type == SonyMdrMessage.TYPE_COMMAND_1 && it.payload.firstOrNull() == INIT_REPLY
+                }.also { link.awaitAck() } // The ACK may arrive after the reply.
             }
             if (reply != null) return reply
             Log.w(LOG_TAG, "No init reply (attempt ${attempt + 1} of $INIT_ATTEMPTS)")
         }
         return null
-    }
-
-    // Init reply payload lengths seen by Gadgetbridge: 4 bytes on v1 devices, 8 bytes on v2 devices.
-    private fun protocolVersion(initReply: SonyMdrMessage): String = when (initReply.payload.size) {
-        4 -> "v1"
-        8 -> "v2"
-        else -> "unknown (${initReply.payload.size}-byte init reply)"
     }
 
     /** Runs on the IO dispatcher; the blocking read ends when the socket is closed. */
@@ -174,36 +169,6 @@ object SonyMdrHandshake {
             Log.d(LOG_TAG, "Sony RX stopped: ${e.message}")
         } finally {
             incoming.close()
-        }
-    }
-
-    /** Sends messages and tracks the sequence number the headphones expect. */
-    private class MdrLink(private val output: OutputStream, private val incoming: ReceiveChannel<SonyMdrMessage>) {
-
-        private var sequence: Byte = 0
-
-        fun send(type: Byte, payload: ByteArray) = write(SonyMdrMessage(type, sequence, payload))
-
-        /**
-         * Returns the next command from the headphones, acknowledging it. ACKs received on the
-         * way carry the sequence number to use for our next message.
-         */
-        suspend fun receiveCommand(): SonyMdrMessage {
-            while (true) {
-                val message = incoming.receive()
-                if (message.type == SonyMdrMessage.TYPE_ACK) {
-                    sequence = message.sequence
-                    continue
-                }
-                write(SonyMdrMessage(SonyMdrMessage.TYPE_ACK, (1 - message.sequence).toByte(), ByteArray(0)))
-                return message
-            }
-        }
-
-        private fun write(message: SonyMdrMessage) {
-            Log.d(LOG_TAG, "Sony TX $message")
-            output.write(message.encode())
-            output.flush()
         }
     }
 }
