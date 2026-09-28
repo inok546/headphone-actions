@@ -3,7 +3,8 @@
 Control Bluetooth headphone features from **Samsung Modes and Routines**.
 
 Headphone Actions exposes the controls of your headphones — noise cancelling, ambient sound,
-Speak-to-Chat, DSEE Extreme — as Android app shortcuts. Samsung Modes and Routines runs them
+Speak-to-Chat, DSEE Extreme, the playback device when two devices are connected — as Android
+app shortcuts. Samsung Modes and Routines runs them
 through **Open an app or do an app action**, so your headphones can switch modes on their own:
 when you leave home, get in the car, start a workout or at a set time.
 
@@ -25,16 +26,31 @@ Sony WH-1000XM6:
 | Speak-to-Chat Off | `sony.wh1000xm6.speak_to_chat.off` |
 | DSEE Extreme On | `sony.wh1000xm6.dsee.on` |
 | DSEE Extreme Off | `sony.wh1000xm6.dsee.off` |
+| Play on This Phone | `sony.wh1000xm6.playback.lock_this_phone` |
+| Play on Other Device | `sony.wh1000xm6.playback.lock_other_device` |
+| Lock Playback Device | `sony.wh1000xm6.playback.lock_current` |
+| Auto Playback Switching | `sony.wh1000xm6.playback.auto_switch` |
 
 Shortcut IDs are stable, so routines that use them keep working across app updates.
 Changing the noise control mode keeps your other settings (focus on voice, ambient sound level,
 auto ambient sound) as they are.
+
+The playback actions are for multipoint, when the headphones are connected to two devices at
+once. Normally the headphones switch to whichever device starts playing; these actions pick the
+device and lock playback to it:
+
+- **Play on This Phone** / **Play on Other Device** switch playback to this phone or to the
+  other connected device and lock it there.
+- **Lock Playback Device** locks playback to the device that is playing now.
+- **Auto Playback Switching** removes the lock.
 
 ## Requirements
 
 - Android 8.0 or later. Automation needs a Samsung phone with Modes and Routines.
 - Headphones paired with the phone in the Android Bluetooth settings.
 - The **Nearby devices** permission (Android 12 and later).
+- For the playback actions: **Connect to 2 devices simultaneously** turned on in Sony's Sound
+  Connect app.
 
 ## Installation
 
@@ -56,8 +72,11 @@ the other.
 2. Under **Paired devices**, tap **Register as Sony WH-1000XM6** next to your headphones.
    The app publishes the actions of that model as shortcuts. They stay the same until you
    remove the registration; connecting or disconnecting the headphones does not change them.
-3. Optionally try things from the app: **Test connection**, or **Run** next to an action.
-4. In **Modes and Routines**, create a routine and add
+3. For **Play on This Phone** and **Play on Other Device**: under **Multipoint**, tap
+   **Choose this phone**, then **This is my phone** next to this phone in the headphones' device
+   list. Android does not tell apps the phone's own Bluetooth address, so the app asks once.
+4. Optionally try things from the app: **Test connection**, or **Run** next to an action.
+5. In **Modes and Routines**, create a routine and add
    **Then → Apps → Open an app or do an app action → Headphone Actions**, then pick an action.
 
 When the routine runs, the action is sent to the headphones in the background; no window opens,
@@ -65,6 +84,10 @@ also with the screen off. If it fails, for example because the headphones are of
 message appears. **Last routine action** in the app shows the result of the latest run.
 
 The actions also appear as app shortcuts in launchers (long-press the app icon).
+
+After an update that adds actions, tap **Remove registration**, register the headphones again and
+choose this phone again, to publish the new shortcuts. Existing shortcut IDs stay the same, so
+your routines keep working.
 
 ## How it works
 
