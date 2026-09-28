@@ -30,18 +30,36 @@ object SonyNoiseControl {
     private const val NOTIFY: Byte = 0x69
     private const val INQUIRED_TYPE: Byte = 0x19
 
-    enum class Mode(val label: String) {
-        OFF("Noise control off"),
-        NOISE_CANCELLING("Noise cancelling"),
-        AMBIENT_SOUND("Ambient sound"),
+    enum class Mode(val description: String) {
+        OFF("noise control off"),
+        NOISE_CANCELLING("noise cancelling on"),
+        AMBIENT_SOUND("ambient sound on"),
     }
 
+    /**
+     * The fields as the headphones report them. While [enabled] is false the others keep the
+     * last settings, including whether ambient sound was selected, and are sent back unchanged.
+     */
     data class State(
-        val mode: Mode,
+        val enabled: Boolean,
+        val ambientSelected: Boolean,
         val focusOnVoice: Boolean,
         val ambientLevel: Int,
         val autoAmbientSound: Boolean,
-    )
+    ) {
+        val mode: Mode
+            get() = when {
+                !enabled -> Mode.OFF
+                ambientSelected -> Mode.AMBIENT_SOUND
+                else -> Mode.NOISE_CANCELLING
+            }
+
+        fun withMode(mode: Mode): State = when (mode) {
+            Mode.OFF -> copy(enabled = false)
+            Mode.NOISE_CANCELLING -> copy(enabled = true, ambientSelected = false)
+            Mode.AMBIENT_SOUND -> copy(enabled = true, ambientSelected = true)
+        }
+    }
 
     val getRequest = byteArrayOf(GET, INQUIRED_TYPE)
 
@@ -49,8 +67,8 @@ object SonyNoiseControl {
         SET,
         INQUIRED_TYPE,
         0x01, // Commit; the Sony app sends 0x00 for preview frames while a slider is dragged.
-        if (state.mode == Mode.OFF) 0x00 else 0x01,
-        if (state.mode == Mode.AMBIENT_SOUND) 0x01 else 0x00,
+        if (state.enabled) 0x01 else 0x00,
+        if (state.ambientSelected) 0x01 else 0x00,
         if (state.focusOnVoice) 0x01 else 0x00,
         state.ambientLevel.toByte(),
         if (state.autoAmbientSound) 0x01 else 0x00,
@@ -61,17 +79,12 @@ object SonyNoiseControl {
     fun parse(payload: ByteArray): State? {
         if (payload.size != 9 || payload[1] != INQUIRED_TYPE) return null
         val enabled = flag(payload[3]) ?: return null
-        val ambient = flag(payload[4]) ?: return null
+        val ambientSelected = flag(payload[4]) ?: return null
         val focusOnVoice = flag(payload[5]) ?: return null
         val ambientLevel = payload[6].toInt()
         if (ambientLevel !in 0..20) return null
         val autoAmbientSound = flag(payload[7]) ?: return null
-        val mode = when {
-            !enabled -> Mode.OFF
-            ambient -> Mode.AMBIENT_SOUND
-            else -> Mode.NOISE_CANCELLING
-        }
-        return State(mode, focusOnVoice, ambientLevel, autoAmbientSound)
+        return State(enabled, ambientSelected, focusOnVoice, ambientLevel, autoAmbientSound)
     }
 
     private fun flag(value: Byte): Boolean? = when (value.toInt()) {
@@ -93,10 +106,10 @@ object SonyNoiseControl {
         val current = parse(before.payload)
             ?: return DeviceResult.Failure("Unexpected noise control state ${before.payload.toHex()}")
         Log.i(LOG_TAG, "Noise control before: $current")
-        if (current.mode == mode) return DeviceResult.Success("${mode.label} was already on")
+        if (current.mode == mode) return DeviceResult.Success("Already: ${mode.description}")
 
         session.discard(NOTIFY)
-        if (!session.command(setRequest(current.copy(mode = mode)))) {
+        if (!session.command(setRequest(current.withMode(mode)))) {
             return DeviceResult.Failure("The headphones did not acknowledge the change")
         }
 
@@ -106,9 +119,9 @@ object SonyNoiseControl {
             ?: return DeviceResult.Failure("Unexpected noise control state ${confirmation.payload.toHex()}")
         Log.i(LOG_TAG, "Noise control after: $updated")
         return if (updated.mode == mode) {
-            DeviceResult.Success("${mode.label} on (was ${current.mode.label.lowercase()})")
+            DeviceResult.Success("Now: ${mode.description} (was: ${current.mode.description})")
         } else {
-            DeviceResult.Failure("The headphones report ${updated.mode.label.lowercase()} after the change")
+            DeviceResult.Failure("The headphones report ${updated.mode.description} after the change")
         }
     }
 }

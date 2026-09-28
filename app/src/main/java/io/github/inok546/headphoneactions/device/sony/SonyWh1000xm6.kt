@@ -12,19 +12,21 @@ import io.github.inok546.headphoneactions.device.sony.mdr.SonyNoiseControl
 import io.github.inok546.headphoneactions.device.sony.mdr.toHex
 
 /**
- * Sony WH-1000XM6. Only Noise Cancelling is executed so far; the other actions are declared
- * but not implemented yet. The action IDs are published and must not change.
+ * Sony WH-1000XM6. The noise control actions are executed; Speak-to-Chat and DSEE Extreme are
+ * declared but not implemented yet. The action IDs are published and must not change.
  */
 object SonyWh1000xm6 : HeadphoneModel {
 
     private val noiseCancelling = SupportedAction("sony.wh1000xm6.noise_control.anc", "Noise Cancelling")
+    private val ambientSound = SupportedAction("sony.wh1000xm6.noise_control.ambient", "Ambient Sound")
+    private val noiseControlOff = SupportedAction("sony.wh1000xm6.noise_control.off", "Noise Control Off")
 
     override val id = "sony.wh1000xm6"
     override val displayName = "Sony WH-1000XM6"
     override val actions = listOf(
         noiseCancelling,
-        SupportedAction("sony.wh1000xm6.noise_control.ambient", "Ambient Sound"),
-        SupportedAction("sony.wh1000xm6.noise_control.off", "Noise Control Off"),
+        ambientSound,
+        noiseControlOff,
         SupportedAction("sony.wh1000xm6.speak_to_chat.on", "Speak-to-Chat On"),
         SupportedAction("sony.wh1000xm6.speak_to_chat.off", "Speak-to-Chat Off"),
         SupportedAction("sony.wh1000xm6.dsee.on", "DSEE Extreme On"),
@@ -43,11 +45,15 @@ object SonyWh1000xm6 : HeadphoneModel {
             DeviceResult.Success("Sony MDR protocol ${session.protocolVersion.name.lowercase()}, init reply ${session.initReply.toHex()}")
         }
 
-    override suspend fun execute(context: Context, device: RegisteredDevice, action: SupportedAction): DeviceResult =
-        when (action.id) {
-            noiseCancelling.id -> SonyMdrConnection.open(context, device.address) { session ->
-                SonyNoiseControl.setMode(session, SonyNoiseControl.Mode.NOISE_CANCELLING)
-            }
-            else -> DeviceResult.Failure("${action.label} is not implemented yet")
-        }
+    private val noiseControlModes = mapOf(
+        noiseCancelling.id to SonyNoiseControl.Mode.NOISE_CANCELLING,
+        ambientSound.id to SonyNoiseControl.Mode.AMBIENT_SOUND,
+        noiseControlOff.id to SonyNoiseControl.Mode.OFF,
+    )
+
+    override suspend fun execute(context: Context, device: RegisteredDevice, action: SupportedAction): DeviceResult {
+        val mode = noiseControlModes[action.id]
+            ?: return DeviceResult.Failure("${action.label} is not implemented yet")
+        return SonyMdrConnection.open(context, device.address) { session -> SonyNoiseControl.setMode(session, mode) }
+    }
 }

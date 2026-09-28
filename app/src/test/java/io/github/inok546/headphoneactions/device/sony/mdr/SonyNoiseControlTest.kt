@@ -10,41 +10,48 @@ import org.junit.Test
 
 class SonyNoiseControlTest {
 
+    private val ambientState = State(
+        enabled = true,
+        ambientSelected = true,
+        focusOnVoice = true,
+        ambientLevel = 12,
+        autoAmbientSound = true,
+    )
+
     @Test
     fun `get request asks for the WH-1000XM6 state`() {
         assertEquals("66:19", SonyNoiseControl.getRequest.toHex())
     }
 
     @Test
-    fun `set request keeps the other settings`() {
-        assertEquals(
-            "68:19:01:01:00:01:0c:00:00",
-            SonyNoiseControl.setRequest(State(Mode.NOISE_CANCELLING, true, 12, false)).toHex(),
-        )
-        assertEquals(
-            "68:19:01:01:01:00:14:01:00",
-            SonyNoiseControl.setRequest(State(Mode.AMBIENT_SOUND, false, 20, true)).toHex(),
-        )
-        assertEquals(
-            "68:19:01:00:00:00:05:00:00",
-            SonyNoiseControl.setRequest(State(Mode.OFF, false, 5, false)).toHex(),
-        )
+    fun `each mode keeps the other settings`() {
+        assertEquals("68:19:01:01:00:01:0c:01:00", SonyNoiseControl.setRequest(ambientState.withMode(Mode.NOISE_CANCELLING)).toHex())
+        assertEquals("68:19:01:01:01:01:0c:01:00", SonyNoiseControl.setRequest(ambientState.withMode(Mode.AMBIENT_SOUND)).toHex())
+        // Off keeps the ambient selection too, so switching on again returns to ambient sound.
+        assertEquals("68:19:01:00:01:01:0c:01:00", SonyNoiseControl.setRequest(ambientState.withMode(Mode.OFF)).toHex())
+    }
+
+    @Test
+    fun `switching off and on again restores the previous mode`() {
+        val off = ambientState.withMode(Mode.OFF)
+
+        assertEquals(Mode.OFF, off.mode)
+        assertEquals(Mode.AMBIENT_SOUND, off.copy(enabled = true).mode)
     }
 
     @Test
     fun `parses returned and notified states`() {
         assertEquals(
-            State(Mode.AMBIENT_SOUND, false, 20, false),
+            State(enabled = true, ambientSelected = true, focusOnVoice = false, ambientLevel = 20, autoAmbientSound = false),
             SonyNoiseControl.parse(bytes(0x67, 0x19, 0x01, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00)),
         )
         assertEquals(
-            State(Mode.NOISE_CANCELLING, true, 12, true),
-            SonyNoiseControl.parse(bytes(0x69, 0x19, 0x01, 0x01, 0x00, 0x01, 0x0c, 0x01, 0x00)),
+            Mode.NOISE_CANCELLING,
+            SonyNoiseControl.parse(bytes(0x69, 0x19, 0x01, 0x01, 0x00, 0x01, 0x0c, 0x01, 0x00))?.mode,
         )
-        // While off, the remaining fields keep the last settings.
         assertEquals(
-            State(Mode.OFF, false, 20, false),
-            SonyNoiseControl.parse(bytes(0x67, 0x19, 0x01, 0x00, 0x01, 0x00, 0x14, 0x00, 0x00)),
+            Mode.OFF,
+            SonyNoiseControl.parse(bytes(0x67, 0x19, 0x01, 0x00, 0x01, 0x00, 0x14, 0x00, 0x00))?.mode,
         )
     }
 
