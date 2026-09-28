@@ -8,18 +8,21 @@ import io.github.inok546.headphoneactions.device.HeadphoneModel
 import io.github.inok546.headphoneactions.device.RegisteredDevice
 import io.github.inok546.headphoneactions.device.SupportedAction
 import io.github.inok546.headphoneactions.device.sony.mdr.SonyMdrConnection
+import io.github.inok546.headphoneactions.device.sony.mdr.SonyMdrSession
+import io.github.inok546.headphoneactions.device.sony.mdr.SonyMdrSwitch
 import io.github.inok546.headphoneactions.device.sony.mdr.SonyNoiseControl
 import io.github.inok546.headphoneactions.device.sony.mdr.toHex
 
-/**
- * Sony WH-1000XM6. The noise control actions are executed; Speak-to-Chat and DSEE Extreme are
- * declared but not implemented yet. The action IDs are published and must not change.
- */
+/** Sony WH-1000XM6. The action IDs are published and must not change. */
 object SonyWh1000xm6 : HeadphoneModel {
 
     private val noiseCancelling = SupportedAction("sony.wh1000xm6.noise_control.anc", "Noise Cancelling")
     private val ambientSound = SupportedAction("sony.wh1000xm6.noise_control.ambient", "Ambient Sound")
     private val noiseControlOff = SupportedAction("sony.wh1000xm6.noise_control.off", "Noise Control Off")
+    private val speakToChatOn = SupportedAction("sony.wh1000xm6.speak_to_chat.on", "Speak-to-Chat On")
+    private val speakToChatOff = SupportedAction("sony.wh1000xm6.speak_to_chat.off", "Speak-to-Chat Off")
+    private val dseeOn = SupportedAction("sony.wh1000xm6.dsee.on", "DSEE Extreme On")
+    private val dseeOff = SupportedAction("sony.wh1000xm6.dsee.off", "DSEE Extreme Off")
 
     override val id = "sony.wh1000xm6"
     override val displayName = "Sony WH-1000XM6"
@@ -27,10 +30,10 @@ object SonyWh1000xm6 : HeadphoneModel {
         noiseCancelling,
         ambientSound,
         noiseControlOff,
-        SupportedAction("sony.wh1000xm6.speak_to_chat.on", "Speak-to-Chat On"),
-        SupportedAction("sony.wh1000xm6.speak_to_chat.off", "Speak-to-Chat Off"),
-        SupportedAction("sony.wh1000xm6.dsee.on", "DSEE Extreme On"),
-        SupportedAction("sony.wh1000xm6.dsee.off", "DSEE Extreme Off"),
+        speakToChatOn,
+        speakToChatOff,
+        dseeOn,
+        dseeOff,
     )
 
     // Gadgetbridge's SonyWH1000XM6Coordinator matches ".*WH-1000XM6.*". "LE_"-prefixed
@@ -45,15 +48,19 @@ object SonyWh1000xm6 : HeadphoneModel {
             DeviceResult.Success("Sony MDR protocol ${session.protocolVersion.name.lowercase()}, init reply ${session.initReply.toHex()}")
         }
 
-    private val noiseControlModes = mapOf(
-        noiseCancelling.id to SonyNoiseControl.Mode.NOISE_CANCELLING,
-        ambientSound.id to SonyNoiseControl.Mode.AMBIENT_SOUND,
-        noiseControlOff.id to SonyNoiseControl.Mode.OFF,
+    private val operations: Map<String, suspend (SonyMdrSession) -> DeviceResult> = mapOf(
+        noiseCancelling.id to { SonyNoiseControl.setMode(it, SonyNoiseControl.Mode.NOISE_CANCELLING) },
+        ambientSound.id to { SonyNoiseControl.setMode(it, SonyNoiseControl.Mode.AMBIENT_SOUND) },
+        noiseControlOff.id to { SonyNoiseControl.setMode(it, SonyNoiseControl.Mode.OFF) },
+        speakToChatOn.id to { SonyMdrSwitch.speakToChat.set(it, enabled = true) },
+        speakToChatOff.id to { SonyMdrSwitch.speakToChat.set(it, enabled = false) },
+        dseeOn.id to { SonyMdrSwitch.dseeExtreme.set(it, enabled = true) },
+        dseeOff.id to { SonyMdrSwitch.dseeExtreme.set(it, enabled = false) },
     )
 
     override suspend fun execute(context: Context, device: RegisteredDevice, action: SupportedAction): DeviceResult {
-        val mode = noiseControlModes[action.id]
-            ?: return DeviceResult.Failure("${action.label} is not implemented yet")
-        return SonyMdrConnection.open(context, device.address) { session -> SonyNoiseControl.setMode(session, mode) }
+        val operation = operations[action.id]
+            ?: return DeviceResult.Failure("${action.label} is not supported by ${device.name}")
+        return SonyMdrConnection.open(context, device.address, operation)
     }
 }

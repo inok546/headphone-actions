@@ -16,6 +16,7 @@ class SonyNoiseControlTest {
         focusOnVoice = true,
         ambientLevel = 12,
         autoAmbientSound = true,
+        autoAmbientSensitivity = 0x02,
     )
 
     @Test
@@ -25,10 +26,10 @@ class SonyNoiseControlTest {
 
     @Test
     fun `each mode keeps the other settings`() {
-        assertEquals("68:19:01:01:00:01:0c:01:00", SonyNoiseControl.setRequest(ambientState.withMode(Mode.NOISE_CANCELLING)).toHex())
-        assertEquals("68:19:01:01:01:01:0c:01:00", SonyNoiseControl.setRequest(ambientState.withMode(Mode.AMBIENT_SOUND)).toHex())
+        assertEquals("68:19:01:01:00:01:0c:01:02", SonyNoiseControl.setRequest(ambientState.withMode(Mode.NOISE_CANCELLING)).toHex())
+        assertEquals("68:19:01:01:01:01:0c:01:02", SonyNoiseControl.setRequest(ambientState.withMode(Mode.AMBIENT_SOUND)).toHex())
         // Off keeps the ambient selection too, so switching on again returns to ambient sound.
-        assertEquals("68:19:01:00:01:01:0c:01:00", SonyNoiseControl.setRequest(ambientState.withMode(Mode.OFF)).toHex())
+        assertEquals("68:19:01:00:01:01:0c:01:02", SonyNoiseControl.setRequest(ambientState.withMode(Mode.OFF)).toHex())
     }
 
     @Test
@@ -42,8 +43,15 @@ class SonyNoiseControlTest {
     @Test
     fun `parses returned and notified states`() {
         assertEquals(
-            State(enabled = true, ambientSelected = true, focusOnVoice = false, ambientLevel = 20, autoAmbientSound = false),
-            SonyNoiseControl.parse(bytes(0x67, 0x19, 0x01, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00)),
+            State(
+                enabled = true,
+                ambientSelected = true,
+                focusOnVoice = false,
+                ambientLevel = 20,
+                autoAmbientSound = true,
+                autoAmbientSensitivity = 0x01,
+            ),
+            SonyNoiseControl.parse(bytes(0x67, 0x19, 0x01, 0x01, 0x01, 0x00, 0x14, 0x01, 0x01)),
         )
         assertEquals(
             Mode.NOISE_CANCELLING,

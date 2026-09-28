@@ -9,7 +9,9 @@
 // Gadgetbridge is licensed under the GNU AGPL version 3 or later; used here under version 3.
 //
 // The WH-1000XM6 layout (inquired type 0x19, 9-byte payload, auto ambient sound flag) is
-// documented in sonyctl's docs/MDR_PROBE_RESULTS.md (https://github.com/sevsev9/sonyctl, MIT).
+// documented in sonyctl's docs/MDR_PROBE_RESULTS.md (https://github.com/sevsev9/sonyctl, MIT);
+// BudsLink (https://github.com/maniacx/BudsLink, GPL-3.0) identifies the last byte as the auto
+// ambient sound sensitivity.
 
 package io.github.inok546.headphoneactions.device.sony.mdr
 
@@ -19,7 +21,7 @@ import io.github.inok546.headphoneactions.device.DeviceResult
 
 /**
  * Noise cancelling / ambient sound control in the WH-1000XM6 layout: payloads
- * `code, 0x19, commit, enabled, ambient, focusOnVoice, ambientLevel, autoAmbient, 0x00`.
+ * `code, 0x19, commit, enabled, ambient, focusOnVoice, ambientLevel, autoAmbient, autoAmbientSensitivity`.
  * The WH-1000XM6 ignores the 0x15 layout Gadgetbridge uses for it.
  */
 object SonyNoiseControl {
@@ -46,6 +48,7 @@ object SonyNoiseControl {
         val focusOnVoice: Boolean,
         val ambientLevel: Int,
         val autoAmbientSound: Boolean,
+        val autoAmbientSensitivity: Byte,
     ) {
         val mode: Mode
             get() = when {
@@ -72,7 +75,7 @@ object SonyNoiseControl {
         if (state.focusOnVoice) 0x01 else 0x00,
         state.ambientLevel.toByte(),
         if (state.autoAmbientSound) 0x01 else 0x00,
-        0x00,
+        state.autoAmbientSensitivity,
     )
 
     /** Parses a RET or NOTIFY payload; null if it is not in the expected layout. */
@@ -84,7 +87,9 @@ object SonyNoiseControl {
         val ambientLevel = payload[6].toInt()
         if (ambientLevel !in 0..20) return null
         val autoAmbientSound = flag(payload[7]) ?: return null
-        return State(enabled, ambientSelected, focusOnVoice, ambientLevel, autoAmbientSound)
+        // 0x00 standard, 0x01 high, 0x02 low; sent back as reported, so not validated.
+        val autoAmbientSensitivity = payload[8]
+        return State(enabled, ambientSelected, focusOnVoice, ambientLevel, autoAmbientSound, autoAmbientSensitivity)
     }
 
     private fun flag(value: Byte): Boolean? = when (value.toInt()) {
@@ -108,12 +113,12 @@ object SonyNoiseControl {
         Log.i(LOG_TAG, "Noise control before: $current")
         if (current.mode == mode) return DeviceResult.Success("Already: ${mode.description}")
 
-        session.discard(NOTIFY)
+        session.discard(NOTIFY, INQUIRED_TYPE)
         if (!session.command(setRequest(current.withMode(mode)))) {
             return DeviceResult.Failure("The headphones did not acknowledge the change")
         }
 
-        val confirmation = session.await(NOTIFY) ?: session.query(getRequest, RET)
+        val confirmation = session.await(NOTIFY, INQUIRED_TYPE) ?: session.query(getRequest, RET)
             ?: return DeviceResult.Failure("No confirmation of the change")
         val updated = parse(confirmation.payload)
             ?: return DeviceResult.Failure("Unexpected noise control state ${confirmation.payload.toHex()}")

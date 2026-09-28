@@ -33,26 +33,33 @@ class SonyMdrSession(private val link: SonyMdrLink, val initReply: ByteArray) {
             link.awaitAck()
         } != null
 
-    /** Sends [payload] and returns the reply whose payload starts with [replyCode]; null if none arrives in time. */
-    suspend fun query(payload: ByteArray, replyCode: Byte): SonyMdrMessage? {
-        discard(replyCode)
+    /**
+     * Sends a `[code, type, …]` request and returns the `[replyCode, type, …]` reply; null if
+     * none arrives in time.
+     */
+    suspend fun query(request: ByteArray, replyCode: Byte): SonyMdrMessage? {
+        val type = request[1]
+        discard(replyCode, type)
         return withTimeoutOrNull(REPLY_TIMEOUT_MS) {
-            link.send(payload)
+            link.send(request)
             link.awaitAck()
-            awaitCode(replyCode)
+            link.awaitCommand { it.matches(replyCode, type) }
         }
     }
 
-    /** Waits for a message from the headphones whose payload starts with [code]; null if none arrives in time. */
-    suspend fun await(code: Byte): SonyMdrMessage? = withTimeoutOrNull(REPLY_TIMEOUT_MS) { awaitCode(code) }
+    /** Waits for a `[code, type, …]` message from the headphones; null if none arrives in time. */
+    suspend fun await(code: Byte, type: Byte): SonyMdrMessage? =
+        withTimeoutOrNull(REPLY_TIMEOUT_MS) { link.awaitCommand { it.matches(code, type) } }
 
     /**
-     * Forgets already received messages starting with [code]. The WH-1000XM6 may repeat a
-     * reply, and a stale repeat must not be taken for the answer to a later request.
+     * Forgets already received `[code, type, …]` messages. The WH-1000XM6 may repeat a reply,
+     * and a stale repeat must not be taken for the answer to a later request.
      */
-    fun discard(code: Byte) = link.discardReceived { it.payload.firstOrNull() == code }
+    fun discard(code: Byte, type: Byte) = link.discardReceived { it.matches(code, type) }
 
-    private suspend fun awaitCode(code: Byte) = link.awaitCommand { it.payload.firstOrNull() == code }
+    // The type byte tells apart settings that share an opcode, e.g. the SYSTEM parameters.
+    private fun SonyMdrMessage.matches(code: Byte, type: Byte) =
+        payload.size >= 2 && payload[0] == code && payload[1] == type
 
     private companion object {
         const val REPLY_TIMEOUT_MS = 2000L
