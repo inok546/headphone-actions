@@ -17,6 +17,27 @@ android {
         versionName = "0.7.0"
     }
 
+    // The release key lives outside the repository. Its location and passwords come from
+    // headphoneActions.* properties, normally in ~/.gradle/gradle.properties; without them
+    // the release APK is built unsigned.
+    val releaseStoreFile = providers.gradleProperty("headphoneActions.releaseStoreFile").orNull
+    signingConfigs {
+        if (releaseStoreFile != null) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = providers.gradleProperty("headphoneActions.releaseStorePassword").get()
+                keyAlias = providers.gradleProperty("headphoneActions.releaseKeyAlias").get()
+                keyPassword = providers.gradleProperty("headphoneActions.releaseKeyPassword").get()
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.findByName("release")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
