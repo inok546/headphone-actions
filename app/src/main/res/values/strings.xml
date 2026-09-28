@@ -8,6 +8,12 @@
     <string name="registered_device_model">Model: %1$s</string>
     <string name="remove_registration">Remove registration</string>
 
+    <string name="connection_title">Connection</string>
+    <string name="connection_test">Test connection</string>
+    <string name="connection_test_running">Connecting to the headphones…</string>
+    <string name="connection_test_success">Connected. %1$s</string>
+    <string name="connection_test_failure">Failed: %1$s</string>
+
     <string name="paired_devices_title">Paired devices</string>
     <string name="paired_devices_permission_rationale">Allow the Nearby devices permission so Headphone Actions can list the Bluetooth devices paired with this phone.</string>
     <string name="paired_devices_allow">Allow</string>

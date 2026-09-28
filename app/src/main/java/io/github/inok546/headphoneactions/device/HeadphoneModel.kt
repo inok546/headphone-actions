@@ -2,7 +2,8 @@
 
 package io.github.inok546.headphoneactions.device
 
-import io.github.inok546.headphoneactions.device.sony.sonyWh1000xm6
+import android.content.Context
+import io.github.inok546.headphoneactions.device.sony.SonyWh1000xm6
 
 /**
  * One action a specific headphone model supports.
@@ -12,20 +13,30 @@ import io.github.inok546.headphoneactions.device.sony.sonyWh1000xm6
  */
 data class SupportedAction(val id: String, val label: String)
 
-/** A headphone model, how to recognize it among paired devices, and the actions it supports. */
-data class HeadphoneModel(
-    val id: String,
-    val displayName: String,
-    /** Must match the paired device's whole Bluetooth name. */
-    val bluetoothNamePattern: Regex,
-    val actions: List<SupportedAction>,
-) {
-    fun matchesDeviceName(name: String): Boolean = bluetoothNamePattern.matches(name)
+sealed interface ConnectionTestResult {
+    data class Success(val details: String) : ConnectionTestResult
+    data class Failure(val reason: String) : ConnectionTestResult
+}
+
+/**
+ * Support for one headphone model: how to recognize it among paired devices, which actions
+ * it exposes and how to talk to it. Vendor protocol details stay behind this interface.
+ */
+interface HeadphoneModel {
+    val id: String
+    val displayName: String
+    val actions: List<SupportedAction>
+
+    /** Whether a paired device with this whole Bluetooth name is this model. */
+    fun matchesDeviceName(name: String): Boolean
+
+    /** Connects to [device], performs the protocol handshake and disconnects. */
+    suspend fun testConnection(context: Context, device: RegisteredDevice): ConnectionTestResult
 
     fun findAction(actionId: String): SupportedAction? = actions.find { it.id == actionId }
 }
 
-val supportedModels: List<HeadphoneModel> = listOf(sonyWh1000xm6)
+val supportedModels: List<HeadphoneModel> = listOf(SonyWh1000xm6)
 
 fun findModel(modelId: String): HeadphoneModel? = supportedModels.find { it.id == modelId }
 

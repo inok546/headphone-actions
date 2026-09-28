@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.github.inok546.headphoneactions.bluetooth.PairedDevice
 import io.github.inok546.headphoneactions.bluetooth.PairedDevices
+import io.github.inok546.headphoneactions.device.ConnectionTestResult
 import io.github.inok546.headphoneactions.device.HeadphoneModel
 import io.github.inok546.headphoneactions.device.RegisteredDevice
 import io.github.inok546.headphoneactions.device.SupportedAction
@@ -38,6 +39,8 @@ data class MainUiState(
     val pairedDevices: PairedDevices? = null,
     val publishedActions: List<SupportedAction> = emptyList(),
     val lastRoutineAction: LastRoutineAction? = null,
+    val connectionTestRunning: Boolean = false,
+    val connectionTestResult: ConnectionTestResult? = null,
 )
 
 @Composable
@@ -54,6 +57,7 @@ fun MainScreen(
     onRequestBluetoothPermission: () -> Unit,
     onOpenAppSettings: () -> Unit,
     onRegister: (PairedDevice, HeadphoneModel) -> Unit,
+    onTestConnection: () -> Unit,
     onRemoveRegistration: () -> Unit,
 ) {
     Scaffold { innerPadding ->
@@ -67,6 +71,9 @@ fun MainScreen(
         ) {
             Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineMedium)
             RegistrationSection(state.registeredDevice, state.registeredModel, onRemoveRegistration)
+            if (state.registeredDevice != null) {
+                ConnectionTestSection(state.connectionTestRunning, state.connectionTestResult, onTestConnection)
+            }
             state.pairedDevices?.let {
                 PairedDevicesSection(it, onRequestBluetoothPermission, onOpenAppSettings, onRegister)
             }
@@ -94,6 +101,29 @@ private fun RegistrationSection(
         }
         OutlinedButton(onClick = onRemoveRegistration) {
             Text(stringResource(R.string.remove_registration))
+        }
+    }
+}
+
+@Composable
+private fun ConnectionTestSection(
+    running: Boolean,
+    result: ConnectionTestResult?,
+    onTestConnection: () -> Unit,
+) {
+    Section(stringResource(R.string.connection_title)) {
+        Button(onClick = onTestConnection, enabled = !running) {
+            Text(stringResource(R.string.connection_test))
+        }
+        when {
+            running -> Text(stringResource(R.string.connection_test_running))
+            result is ConnectionTestResult.Success ->
+                Text(stringResource(R.string.connection_test_success, result.details))
+            result is ConnectionTestResult.Failure ->
+                Text(
+                    stringResource(R.string.connection_test_failure, result.reason),
+                    color = MaterialTheme.colorScheme.error,
+                )
         }
     }
 }
