@@ -55,20 +55,33 @@ private val ICON_BUTTON_SIZE = 48.dp
 private val TILE_MIN_WIDTH = 72.dp
 private val TILES_MIN_HEIGHT = 140.dp
 
+/** A one-row widget this tall (about 100 dp in portrait) also fits the header above its icons. */
+private val HEADER_MIN_HEIGHT = 80.dp
+
+/** From this width on the header names both the app and the headphones. */
+private val FULL_HEADER_MIN_WIDTH = 250.dp
+
 /**
  * Size breakpoints for [androidx.glance.appwidget.SizeMode.Responsive]: widths from 2 to 4+ cells
- * (130 dp and 276 dp per the official 73n − 16 formula), each as a single row of icons and as
- * tiles. The launcher picks the largest breakpoint that fits.
+ * (130 dp and 276 dp per the official 73n − 16 formula), each as icons only, header and icons,
+ * and header and tiles. The launcher picks the largest breakpoint that fits.
  */
 internal val responsiveSizes: Set<DpSize> =
     listOf(110.dp, 180.dp, 250.dp, 320.dp)
-        .flatMap { width -> listOf(DpSize(width, 40.dp), DpSize(width, TILES_MIN_HEIGHT)) }
+        .flatMap { width -> listOf(40.dp, HEADER_MIN_HEIGHT, TILES_MIN_HEIGHT).map { DpSize(width, it) } }
         .toSet()
 
+/** [deviceName] is the registered headphones' name, null when none are registered. */
 @Composable
-internal fun WidgetLayout(content: WidgetContent, appWidgetId: Int) {
+internal fun WidgetLayout(content: WidgetContent, deviceName: String?, appWidgetId: Int) {
     val context = LocalContext.current
-    Scaffold(horizontalPadding = 4.dp) {
+    val header: (@Composable () -> Unit)? =
+        if (LocalSize.current.height >= HEADER_MIN_HEIGHT) {
+            { Header(deviceName.takeIf { content !is WidgetContent.NoDevice }) }
+        } else {
+            null
+        }
+    Scaffold(titleBar = header, horizontalPadding = 4.dp) {
         when (content) {
             WidgetContent.NoDevice -> Message(
                 title = R.string.widget_no_device,
@@ -85,6 +98,35 @@ internal fun WidgetLayout(content: WidgetContent, appWidgetId: Int) {
             is WidgetContent.Buttons ->
                 if (LocalSize.current.height >= TILES_MIN_HEIGHT) Tiles(content.actions) else IconRow(content.actions)
         }
+    }
+}
+
+/** One line saying what the widget is: the app and the headphones its buttons are for. */
+@Composable
+private fun Header(deviceName: String?) {
+    val context = LocalContext.current
+    val appName = context.getString(R.string.widget_name)
+    val title = when {
+        deviceName == null -> appName
+        LocalSize.current.width >= FULL_HEADER_MIN_WIDTH -> context.getString(R.string.widget_header, appName, deviceName)
+        else -> deviceName
+    }
+    Row(
+        modifier = GlanceModifier.fillMaxWidth().padding(start = 10.dp, top = 6.dp, end = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            provider = ImageProvider(R.drawable.ic_action_generic),
+            contentDescription = null,
+            modifier = GlanceModifier.size(16.dp),
+            colorFilter = ColorFilter.tint(GlanceTheme.colors.onSurfaceVariant),
+        )
+        Text(
+            text = title,
+            modifier = GlanceModifier.padding(start = 6.dp),
+            style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp, fontWeight = FontWeight.Medium),
+            maxLines = 1,
+        )
     }
 }
 

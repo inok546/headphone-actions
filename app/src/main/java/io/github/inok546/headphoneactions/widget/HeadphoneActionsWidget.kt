@@ -31,8 +31,9 @@ class HeadphoneActionsWidget : GlanceAppWidget() {
             // registration read below is current as well. The state may predate sync() on the
             // very first composition; resolveWidgetContent() falls back to the same defaults.
             val config = WidgetConfig.readFrom(currentState<Preferences>())
-            val model = AppPreferences(context).registeredDevice?.let { findModel(it.modelId) }
-            GlanceTheme { WidgetLayout(resolveWidgetContent(model, config), appWidgetId) }
+            val device = AppPreferences(context).registeredDevice
+            val model = device?.let { findModel(it.modelId) }
+            GlanceTheme { WidgetLayout(resolveWidgetContent(model, config), device?.name, appWidgetId) }
         }
     }
 }

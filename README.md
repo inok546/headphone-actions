@@ -1,159 +1,279 @@
 # Headphone Actions
 
-Control Bluetooth headphone features from **Samsung Modes and Routines**.
+**Automate your headphones, not just your phone.**
 
-Headphone Actions exposes the controls of your headphones — noise cancelling, ambient sound,
-Speak-to-Chat, DSEE Extreme, the playback device when two devices are connected — as Android
-app shortcuts. Samsung Modes and Routines runs them
-through **Open an app or do an app action**, so your headphones can switch modes on their own:
-when you leave home, get in the car, start a workout or at a set time.
+Headphone Actions is an open-source Android app that exposes advanced Bluetooth headphone controls as Android app shortcuts and home screen widget buttons, so they can be triggered from automation tools or with a single tap instead of only from a manufacturer's companion app.
 
-The Sony WH-1000XM6 is the first supported model. Support is organized per model, so other
-headphones can be added later.
+Use headphone features such as noise cancelling, ambient sound, Speak-to-Chat, DSEE Extreme, and multipoint playback control directly from automation.
 
-> **Status:** early (0.x). Tested on a Samsung phone with a Sony WH-1000XM6.
+The first supported device is **Sony WH-1000XM6**. Automation is currently tested with **Samsung Modes and Routines**.
 
-## Supported actions
+> **Status:** early 0.x project. Device support is currently limited, but the app is structured so additional headphone models and vendors can be added later.
 
-Sony WH-1000XM6:
+## Why Headphone Actions?
 
-| Action | Shortcut ID |
-|---|---|
-| Noise Cancelling | `sony.wh1000xm6.noise_control.anc` |
-| Ambient Sound | `sony.wh1000xm6.noise_control.ambient` |
-| Noise Control Off | `sony.wh1000xm6.noise_control.off` |
-| Speak-to-Chat On | `sony.wh1000xm6.speak_to_chat.on` |
-| Speak-to-Chat Off | `sony.wh1000xm6.speak_to_chat.off` |
-| DSEE Extreme On | `sony.wh1000xm6.dsee.on` |
-| DSEE Extreme Off | `sony.wh1000xm6.dsee.off` |
-| Play on This Phone | `sony.wh1000xm6.playback.lock_this_phone` |
-| Play on Other Device | `sony.wh1000xm6.playback.lock_other_device` |
-| Lock Playback Device | `sony.wh1000xm6.playback.lock_current` |
-| Auto Playback Switching | `sony.wh1000xm6.playback.auto_switch` |
+Modern Bluetooth headphones often expose their most useful controls only inside proprietary companion apps.
 
-Shortcut IDs are stable, so routines that use them keep working across app updates.
-Changing the noise control mode keeps your other settings (focus on voice, ambient sound level,
-auto ambient sound) as they are.
+Headphone Actions makes supported controls available to Android automation instead:
 
-The playback actions are for multipoint, when the headphones are connected to two devices at
-once. Normally the headphones switch to whichever device starts playing; these actions pick the
-device and lock playback to it:
+```text
+Samsung Modes & Routines
+          │
+          ▼
+   Headphone Actions
+          │
+          ▼
+      device driver
+          │
+          ▼
+     Bluetooth protocol
+          │
+          ▼
+       headphones
+```
 
-- **Play on This Phone** / **Play on Other Device** switch playback to this phone or to the
-  other connected device and lock it there.
-- **Lock Playback Device** locks playback to the device that is playing now.
-- **Auto Playback Switching** removes the lock.
+Headphone Actions talks directly to supported headphones using their Bluetooth control protocols.
 
-## Requirements
+There are:
 
-- Android 8.0 or later. Automation needs a Samsung phone with Modes and Routines.
-- Headphones paired with the phone in the Android Bluetooth settings.
-- The **Nearby devices** permission (Android 12 and later).
-- For the playback actions: **Connect to 2 devices simultaneously** turned on in Sony's Sound
-  Connect app.
+- no accounts;
+- no cloud services;
+- no analytics or telemetry;
+- no continuous background polling;
+- no permanently running background service.
+
+The app communicates with the headphones only when an action runs — from the app, a routine or the widget — or when you explicitly test the connection or read the headphones' device list for the multipoint setup.
+
+## Compatibility
+
+### Android
+
+- Android 8.0 or later
+- Android 12+ requires the **Nearby devices** permission
+
+### Automation
+
+Currently tested with:
+
+- **Samsung Modes and Routines**
+
+The headphone-control layer itself is not Samsung-specific. Additional Android automation integrations may be added later.
+
+## Supported headphones
+
+| Headphones      | Status                        | Automation                 | Supported features                                                      |
+| --------------- | ----------------------------- | -------------------------- | ----------------------------------------------------------------------- |
+| Sony WH-1000XM6 | Supported and hardware-tested | Samsung Modes and Routines | Noise control, Speak-to-Chat, DSEE Extreme, multipoint playback control |
+
+Support is implemented per device/model family. Future headphones can provide their own actions without putting vendor protocol logic into the Samsung integration.
 
 ## Installation
 
-Download the APK from [Releases](https://github.com/inok546/headphone-actions/releases) and
-install it. Your browser or file manager may ask you to allow installing apps.
+Download the latest APK from [Releases](https://github.com/inok546/headphone-actions/releases) and install it.
+
+Android may ask you to allow your browser or file manager to install unknown apps.
 
 Release APKs are signed with the project key. Its certificate SHA-256 fingerprint is:
 
-```
+```text
 D8:1A:48:52:85:61:2A:B2:B1:F8:54:8B:EC:ED:0F:89:C3:9A:80:89:93:1B:06:A2:67:4A:C4:96:85:34:EC:66
 ```
 
-Builds made from source are signed with a different key, so uninstall one before installing
-the other.
+Builds made locally from source use a different signing key by default, so Android may require uninstalling one build before installing the other.
 
-## Usage
+## Quick start
 
-1. Open Headphone Actions and allow **Nearby devices**.
-2. Under **Paired devices**, tap **Register as Sony WH-1000XM6** next to your headphones.
-   The app publishes the actions of that model as shortcuts. They stay the same until you
-   remove the registration; connecting or disconnecting the headphones does not change them.
-3. For **Play on This Phone** and **Play on Other Device**: under **Multipoint**, tap
-   **Choose this phone**, then **This is my phone** next to this phone in the headphones' device
-   list. Android does not tell apps the phone's own Bluetooth address, so the app asks once.
-4. Optionally try things from the app: **Test connection**, or **Run** next to an action.
-5. In **Modes and Routines**, create a routine and add
-   **Then → Apps → Open an app or do an app action → Headphone Actions**, then pick an action.
+1. Pair your headphones in Android Bluetooth settings.
+2. Open **Headphone Actions**.
+3. Allow the **Nearby devices** permission when requested.
+4. Under **Paired devices**, register a supported headphone model.
+5. Open **Samsung Modes and Routines**.
+6. Create or edit a routine.
+7. Add:
+   **Then → Apps → Open an app or do an app action → Headphone Actions**
+8. Choose the headphone action you want to run.
 
-When the routine runs, the action is sent to the headphones in the background; no window opens,
-also with the screen off. If it fails, for example because the headphones are off, a short
-message appears. **Last routine action** in the app shows the result of the latest run.
+When the routine runs, Headphone Actions sends the command to the registered headphones in the background.
 
-The actions also appear as app shortcuts in launchers (long-press the app icon).
+If execution fails — for example because the headphones are powered off — a short message appears and the app shows the result under **Last routine action**; the registered device and the shortcut set stay unchanged.
 
-After an update that adds actions, tap **Remove registration**, register the headphones again and
-choose this phone again, to publish the new shortcuts. Existing shortcut IDs stay the same, so
-your routines keep working.
+The first few actions also appear as app shortcuts when you long-press the Headphone Actions icon; launchers show only a limited number of shortcuts.
+
+## Sony WH-1000XM6
+
+### Available actions
+
+| Action                  | Description                                                               |
+| ----------------------- | ------------------------------------------------------------------------- |
+| Noise Cancelling        | Enables active noise cancelling                                           |
+| Ambient Sound           | Enables ambient sound mode                                                |
+| Noise Control Off       | Disables both ANC and ambient sound                                       |
+| Speak-to-Chat On        | Enables Speak-to-Chat                                                     |
+| Speak-to-Chat Off       | Disables Speak-to-Chat                                                    |
+| DSEE Extreme On         | Enables DSEE Extreme                                                      |
+| DSEE Extreme Off        | Disables DSEE Extreme                                                     |
+| Play on This Phone      | Switches playback to this phone and locks playback to it                  |
+| Play on Other Device    | Switches playback to the other multipoint device and locks playback to it |
+| Lock Playback Device    | Locks playback to the device currently playing                            |
+| Auto Playback Switching | Removes the playback lock and restores automatic switching                |
+
+Changing the noise-control mode preserves unrelated headphone settings such as ambient level, focus-on-voice, and automatic ambient-sound behavior where possible.
+
+<details>
+<summary>Stable action IDs</summary>
+
+These IDs are intentionally stable because Samsung Routines may persist references to them.
+
+| Action                  | Shortcut ID                                 |
+| ----------------------- | ------------------------------------------- |
+| Noise Cancelling        | `sony.wh1000xm6.noise_control.anc`          |
+| Ambient Sound           | `sony.wh1000xm6.noise_control.ambient`      |
+| Noise Control Off       | `sony.wh1000xm6.noise_control.off`          |
+| Speak-to-Chat On        | `sony.wh1000xm6.speak_to_chat.on`           |
+| Speak-to-Chat Off       | `sony.wh1000xm6.speak_to_chat.off`          |
+| DSEE Extreme On         | `sony.wh1000xm6.dsee.on`                    |
+| DSEE Extreme Off        | `sony.wh1000xm6.dsee.off`                   |
+| Play on This Phone      | `sony.wh1000xm6.playback.lock_this_phone`   |
+| Play on Other Device    | `sony.wh1000xm6.playback.lock_other_device` |
+| Lock Playback Device    | `sony.wh1000xm6.playback.lock_current`      |
+| Auto Playback Switching | `sony.wh1000xm6.playback.auto_switch`       |
+
+</details>
+
+### Multipoint setup
+
+The playback-routing actions are intended for Sony multipoint mode, where the headphones are connected to two devices at the same time.
+
+First enable **Connect to 2 devices simultaneously** in Sony Sound Connect.
+
+Then, in Headphone Actions:
+
+1. Open the **Multipoint** section.
+2. Tap **Choose this phone**.
+3. Select **This is my phone** next to the current phone in the device list reported by the headphones.
+
+Android does not expose the phone's own Bluetooth address to ordinary apps, so this mapping is requested once from the user.
 
 ## Home screen widget
 
-Headphone Actions also has a home screen widget with buttons for the actions of your
-registered headphones. The buttons send commands; the widget does not show the current state of
-the headphones.
+The Headphone Actions widget puts buttons for your registered headphones on the home screen. A tap runs the action in the background, just like a routine. The buttons send commands; the widget does not show the current state of the headphones.
 
-- **Add it:** long-press the home screen → **Widgets** → **Headphone Actions**. It starts with
-  **Noise Cancelling**, **Ambient Sound** and **Speak-to-Chat Off** (on Android 11 and lower the
-  settings screen opens first, with these preselected).
-- **Sizes:** 4×1 by default; resize it from 2×1 up to 2 rows.
-  - 1 row: icons only, as many as fit, in your order (2 on a 2×1 widget).
+- **Add it:** long-press the home screen → **Widgets** → **Headphone Actions**. A new widget starts with **Noise Cancelling**, **Ambient Sound** and **Speak-to-Chat Off**. (On Android 11 and earlier the settings screen opens first, with these preselected.)
+- **Header:** when the widget is tall enough, a line at the top names the headphones the buttons are for (and the app, on a 4-cell-wide widget).
+- **Sizes:** 4×1 by default; resize from 2×1 up to 2 rows.
+  - 1 row: icon buttons, as many as fit, in your order (2 on a 2×1 widget).
   - 2 rows: tiles with an icon and a short label.
-- **Change the buttons:** long-press the widget → **Settings**. Check the actions to show and
-  use the arrows to order them, then tap **Save**. Only the actions of the registered headphones
-  are offered.
-- **Several widgets:** every widget has its own buttons; changing one leaves the others alone.
-- **Other headphones registered:** a widget set up for another model shows *Headphones changed*
-  with a **Configure** button; its old buttons are not mapped onto the new model.
-- **No headphones registered:** the widget shows *No device registered* with a button that opens
-  the app.
+- **Change the buttons:** long-press the widget → **Settings**, check the actions to show, order them with the arrows and tap **Save**. Only actions of the registered headphones are offered.
+- **Several widgets:** each widget keeps its own buttons.
+- **Other headphones registered:** a widget set up for another model shows **Headphones changed** with a **Configure** button instead of guessing new buttons.
+- **No headphones registered:** the widget shows **No device registered** with a button that opens the app.
 
-A tap runs the action in the background exactly like a routine does; if it fails, a short message
-appears. The widgets update only after you register or remove headphones or change their
-buttons, not when the headphones connect or disconnect.
+Widgets update only after you register or remove headphones or change their buttons — not when the headphones connect or disconnect.
+
+## Registered device behavior
+
+Headphone Actions manages one explicitly registered headphone device.
+
+The app does **not** automatically switch targets based on whichever supported headphones happen to be connected.
+
+The shortcut set belongs to the registered device and does not change when that device connects or disconnects.
+
+Changing or removing the managed headphones is an explicit user action.
+
+Actions added by an app update appear only after you remove the registration and register the headphones again (choose this phone again afterwards if you use the multipoint actions). Existing action IDs stay the same, so your routines keep working.
 
 ## How it works
 
+At a high level:
+
+```text
+registered device
+      │
+      ▼
+  model support
+      │
+      ▼
+supported actions
+      │
+      ▼
+ Android shortcuts
 ```
-registered device → model support → supported actions → app shortcuts
 
-routine → shortcut → RoutineActionActivity → ActionExecutionService → RFCOMM → headphones
-widget button ─────────────────────────────→ ActionExecutionService → RFCOMM → headphones
+When an automation invokes an action:
+
+```text
+Samsung Routine
+      │
+      ▼
+Android app shortcut
+      │
+      ▼
+RoutineActionActivity
+      │
+      ▼
+ActionExecutionService
+      │
+      ▼
+device-specific driver
+      │
+      ▼
+Bluetooth RFCOMM / vendor protocol
+      │
+      ▼
+headphones
 ```
 
-- You register one device explicitly; the app never picks a device on its own.
-- `RoutineActionActivity` is invisible and closes at once. It hands the action to
-  `ActionExecutionService`, a short-lived foreground service of type `connectedDevice` that
-  keeps the app alive for the few seconds the Bluetooth exchange takes, then stops. Android
-  defers its notification by up to 10 seconds, so normally none is shown.
-- Sony headphones are controlled with Sony's MDR protocol over Bluetooth RFCOMM. Each action
-  opens a connection, reads the current state, changes it, confirms the change and disconnects.
-- No background services, polling, cloud services, accounts, analytics or telemetry. The app
-  talks to the headphones only when you run an action.
+`RoutineActionActivity` is intentionally minimal and immediately hands execution to a short-lived foreground service. Home screen widget buttons start the same `ActionExecutionService` directly.
 
-### Permissions
+For Sony WH-1000XM6, Headphone Actions communicates using Sony's MDR protocol over Bluetooth RFCOMM. Each action opens the required connection, exchanges the necessary protocol messages, confirms the result where possible, and disconnects.
 
-| Permission | Why |
-|---|---|
-| `BLUETOOTH_CONNECT` (Android 12+), `BLUETOOTH` (Android 11 and lower) | List paired devices and talk to the registered headphones |
-| `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_CONNECTED_DEVICE` | Keep the app running while an action started by a routine is sent |
+## Permissions
+
+| Permission                            | Why                                                                   |
+| ------------------------------------- | --------------------------------------------------------------------- |
+| `BLUETOOTH_CONNECT` on Android 12+    | List paired devices and communicate with the registered headphones    |
+| `BLUETOOTH` on Android 11 and earlier | Bluetooth communication on older Android versions                     |
+| `FOREGROUND_SERVICE`                  | Let an action started by a routine or the widget finish reliably in the background |
+| `FOREGROUND_SERVICE_CONNECTED_DEVICE` | Android foreground-service type used for the short Bluetooth exchange |
+| `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED`, `ACCESS_NETWORK_STATE` | Added by WorkManager, which Jetpack Glance uses to update the home screen widget; not used by Headphone Actions' own code |
+
+No location permission is requested merely to control already paired headphones, and the app has no Internet permission.
 
 ## Building from source
 
-Requirements: JDK 17 or later, and the Android SDK with `platforms;android-37.0` and
-`build-tools;36.0.0`. Gradle comes with the wrapper. Point `sdk.dir` in `local.properties`
-(or `ANDROID_HOME`) at the SDK.
+### Requirements
+
+- JDK 17 or later
+- Android SDK
+- Android SDK Platform `platforms;android-37.0`
+- Android Build Tools `build-tools;36.0.0`
+- Android Platform Tools for `adb`
+
+Gradle is provided through the repository's Gradle Wrapper. A system Gradle installation is not required.
+
+Configure the Android SDK through `ANDROID_HOME` or `local.properties`:
+
+```properties
+sdk.dir=/path/to/Android/Sdk
+```
+
+Then run:
 
 ```bash
-./gradlew assembleDebug   # app/build/outputs/apk/debug/app-debug.apk
+./gradlew assembleDebug
 ./gradlew test
 ./gradlew lint
 ```
 
-`./gradlew assembleRelease` signs the release APK when these properties are set, for example in
-`~/.gradle/gradle.properties`; otherwise it builds an unsigned APK:
+The debug APK is written to:
+
+```text
+app/build/outputs/apk/debug/app-debug.apk
+```
+
+### Release signing
+
+`./gradlew assembleRelease` signs the release APK when these properties are configured, for example in `~/.gradle/gradle.properties`:
 
 ```properties
 headphoneActions.releaseStoreFile=/path/to/release.jks
@@ -162,36 +282,93 @@ headphoneActions.releaseKeyAlias=…
 headphoneActions.releaseKeyPassword=…
 ```
 
-### Project layout
+Without release-signing configuration, the build produces an unsigned release artifact.
 
-```
+## Project structure
+
+```text
 app/src/main/java/io/github/inok546/headphoneactions/
-├── MainActivity.kt, MainScreen.kt   UI (Jetpack Compose)
-├── AppPreferences.kt                registered device, last routine action
-├── bluetooth/                       paired device list
-├── device/                          HeadphoneModel interface, registered device
-│   └── sony/                        Sony WH-1000XM6 support
-│       └── mdr/                     Sony MDR protocol: framing, session, commands
-├── routines/                        shortcut publishing and execution
-└── widget/                          home screen widget (Jetpack Glance) and its settings
+├── MainActivity.kt
+├── MainScreen.kt
+├── AppPreferences.kt
+├── bluetooth/
+├── device/
+│   ├── HeadphoneModel.kt
+│   └── sony/
+│       └── mdr/
+├── routines/
+└── widget/
 ```
 
-To add a model, implement `HeadphoneModel` — recognize the device by its Bluetooth name,
-declare its actions with stable IDs, connect and execute them — and add it to
-`supportedModels`. The UI and the Samsung integration need no changes and know nothing about
-vendor protocols.
+The important architectural rule is that vendor protocol logic stays inside device support code.
 
-## Credits
+Samsung integration should only need to know:
 
-The Sony MDR protocol code is derived from [Gadgetbridge](https://codeberg.org/Freeyourgadget/Gadgetbridge).
-WH-1000XM6 specifics come from [sonyctl](https://github.com/sevsev9/sonyctl) and
-[BudsLink](https://github.com/maniacx/BudsLink). See [NOTICE.md](NOTICE.md) for details and
-copyright notices.
+- which device is registered;
+- which actions that model exposes;
+- which stable action ID was requested.
+
+It should not contain Sony MDR packet logic.
+
+## Adding support for new headphones
+
+Headphone Actions is intended to support additional headphone models through device-specific implementations.
+
+A new model generally needs to provide:
+
+1. device recognition;
+2. a list of supported actions with stable IDs;
+3. the Bluetooth transport/protocol implementation required by that model;
+4. execution logic for those actions;
+5. automated tests for protocol-independent behavior where practical;
+6. real-hardware validation before claiming model support.
+
+The current model interface is intentionally small and may evolve as a second vendor or substantially different protocol family is added.
+
+Do not assume that a model is supported only because it appears protocol-compatible with another one.
+
+## Roadmap
+
+- [x] Samsung Modes and Routines integration
+- [x] Background action execution
+- [x] Sony WH-1000XM6 support
+- [x] Noise control
+- [x] Speak-to-Chat
+- [x] DSEE Extreme
+- [x] Multipoint playback control
+- [x] Home screen widget
+- [ ] Additional Sony headphone models
+- [ ] Additional headphone vendors
+- [ ] Additional Android automation integrations
+
+## Privacy
+
+Headphone Actions has no account system, cloud backend, analytics, advertising, or telemetry.
+
+The app stores only local data: the registered headphones, the phone chosen for multipoint, the buttons of each widget and the result of the last routine action. It has no Internet permission.
+
+Bluetooth communication stays between the Android device and the headphones.
+
+## Open-source acknowledgements
+
+Headphone Actions builds on Bluetooth protocol research from other open-source projects.
+
+Sony MDR protocol code is derived in part from [Gadgetbridge](https://codeberg.org/Freeyourgadget/Gadgetbridge).
+
+Additional WH-1000XM6 protocol research comes from:
+
+- [sonyctl](https://github.com/sevsev9/sonyctl)
+- [BudsLink](https://github.com/maniacx/BudsLink)
+
+Action icons are [Material Symbols](https://github.com/google/material-design-icons) by Google (Apache License 2.0).
+
+See [NOTICE.md](NOTICE.md) for exact provenance, licenses, and copyright notices.
 
 ## License
 
-[GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).
+Headphone Actions is licensed under the [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).
 
-This project is not affiliated with or endorsed by Sony or Samsung. Sony, WH-1000XM6,
-Speak-to-Chat and DSEE Extreme are trademarks of Sony Group Corporation; Samsung and Modes and
-Routines are trademarks of Samsung Electronics.
+This project is not affiliated with or endorsed by Sony or Samsung.
+
+Sony, WH-1000XM6, Speak-to-Chat, and DSEE Extreme are trademarks of Sony Group Corporation. Samsung and Modes and Routines are trademarks of Samsung Electronics.
+
