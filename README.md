@@ -248,6 +248,12 @@ No location permission is requested merely to control already paired headphones,
 - Android Build Tools `build-tools;36.0.0`
 - Android Platform Tools for `adb`
 
+With the Android SDK command-line tools:
+
+```bash
+sdkmanager "platform-tools" "platforms;android-37.0" "build-tools;36.0.0"
+```
+
 Gradle is provided through the repository's Gradle Wrapper. A system Gradle installation is not required.
 
 Configure the Android SDK through `ANDROID_HOME` or `local.properties`:
@@ -263,6 +269,8 @@ Then run:
 ./gradlew test
 ./gradlew lint
 ```
+
+GitHub Actions runs the same three commands for every push and pull request to `main`.
 
 The debug APK is written to:
 
