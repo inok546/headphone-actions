@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.inok546.headphoneactions.bluetooth.PairedDevice
 import io.github.inok546.headphoneactions.bluetooth.readPairedDevices
@@ -42,6 +43,12 @@ class MainActivity : ComponentActivity() {
             refresh()
         }
 
+    private val notificationPermissionRequest =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            Log.i(LOG_TAG, "Notification permission granted: $granted")
+            refresh()
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -52,6 +59,8 @@ class MainActivity : ComponentActivity() {
                     state = uiState,
                     onRequestBluetoothPermission = ::requestBluetoothPermission,
                     onOpenAppSettings = ::openAppSettings,
+                    onRequestNotificationPermission = ::requestNotificationPermission,
+                    onOpenNotificationSettings = ::openNotificationSettings,
                     onRegister = ::register,
                     onTestConnection = ::testConnection,
                     onRunAction = ::runAction,
@@ -80,6 +89,16 @@ class MainActivity : ComponentActivity() {
         startActivity(
             Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)),
         )
+    }
+
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            notificationPermissionRequest.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    private fun openNotificationSettings() {
+        startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName))
     }
 
     private fun register(device: PairedDevice, model: HeadphoneModel) {
@@ -157,6 +176,9 @@ class MainActivity : ComponentActivity() {
             pairedDevices = if (registeredDevice == null) readPairedDevices(this) else null,
             publishedActions = ShortcutPublisher.publishedActions(this),
             lastRoutineAction = preferences.lastRoutineAction,
+            // Android hides toasts of a background app whose notifications are off, which
+            // is the default for new installs on Android 13+.
+            notificationsEnabled = NotificationManagerCompat.from(this).areNotificationsEnabled(),
         )
     }
 }

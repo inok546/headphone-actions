@@ -45,6 +45,7 @@ data class MainUiState(
     val deviceOperation: DeviceOperation? = null,
     /** The headphones' source devices while the user picks this phone among them. */
     val sourceDevices: List<SourceDevice>? = null,
+    val notificationsEnabled: Boolean = true,
 ) {
     val deviceBusy: Boolean get() = deviceOperation != null && deviceOperation.result == null
 }
@@ -65,6 +66,8 @@ fun MainScreen(
     state: MainUiState,
     onRequestBluetoothPermission: () -> Unit,
     onOpenAppSettings: () -> Unit,
+    onRequestNotificationPermission: () -> Unit,
+    onOpenNotificationSettings: () -> Unit,
     onRegister: (PairedDevice, HeadphoneModel) -> Unit,
     onTestConnection: () -> Unit,
     onRunAction: (SupportedAction) -> Unit,
@@ -85,6 +88,9 @@ fun MainScreen(
             RegistrationSection(state.registeredDevice, state.registeredModel, onRemoveRegistration)
             if (state.registeredDevice != null) {
                 ControlSection(state.deviceOperation, state.deviceBusy, onTestConnection)
+            }
+            if (state.registeredDevice != null && !state.notificationsEnabled) {
+                MessagesSection(onRequestNotificationPermission, onOpenNotificationSettings)
             }
             if (state.registeredDevice != null && state.registeredModel?.supportsMultipoint == true) {
                 MultipointSection(
@@ -143,6 +149,19 @@ private fun ControlSection(operation: DeviceOperation?, busy: Boolean, onTestCon
                 stringResource(R.string.operation_failure, operation.title, result.reason),
                 color = MaterialTheme.colorScheme.error,
             )
+        }
+    }
+}
+
+@Composable
+private fun MessagesSection(onRequestNotificationPermission: () -> Unit, onOpenNotificationSettings: () -> Unit) {
+    Section(stringResource(R.string.messages_title)) {
+        Text(stringResource(R.string.messages_rationale))
+        Button(onClick = onRequestNotificationPermission) {
+            Text(stringResource(R.string.messages_allow))
+        }
+        TextButton(onClick = onOpenNotificationSettings) {
+            Text(stringResource(R.string.messages_open_settings))
         }
     }
 }

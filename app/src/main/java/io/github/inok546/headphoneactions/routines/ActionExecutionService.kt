@@ -40,11 +40,22 @@ class ActionExecutionService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startInForeground()
         val actionId = intent?.getStringExtra(EXTRA_ACTION_ID)
         // Only routine invocations carry the time they were recorded at; widget buttons do not.
         val invokedAtMillis = intent?.takeIf { it.hasExtra(EXTRA_INVOKED_AT) }?.getLongExtra(EXTRA_INVOKED_AT, 0)
-        Log.i(LOG_TAG, "Starting action $actionId from ${if (invokedAtMillis != null) "a routine" else "a widget"}")
+        val fromWidget = invokedAtMillis == null
+        Log.i(LOG_TAG, "Starting action $actionId from ${if (fromWidget) "a widget" else "a routine"}")
+        try {
+            startInForeground()
+        } catch (e: SecurityException) {
+            // A connectedDevice foreground service needs the Nearby devices permission (Android 14+).
+            return abort(startId, actionId, invokedAtMillis, e)
+        } catch (e: IllegalStateException) {
+            // ForegroundServiceStartNotAllowedException (Android 12+).
+            return abort(startId, actionId, invokedAtMillis, e)
+        }
+        // Routines stay silent on success; a widget tap shows at once that it was received.
+        if (fromWidget && actionId != null) announce(actionId)
         scope.launch {
             if (actionId != null) execute(actionId, invokedAtMillis)
             // Stops only once the latest start request has been handled.
@@ -59,8 +70,7 @@ class ActionExecutionService : Service() {
     }
 
     private suspend fun execute(actionId: String, invokedAtMillis: Long?) {
-        val preferences = AppPreferences(this)
-        val device = preferences.registeredDevice
+        val device = AppPreferences(this).registeredDevice
         val model = device?.let { findModel(it.modelId) }
         val action = model?.findAction(actionId)
         val result = if (device == null || action == null) {
@@ -68,13 +78,35 @@ class ActionExecutionService : Service() {
         } else {
             DeviceAccess.exclusive { model.execute(applicationContext, device, action) }
         }
+        report(actionId, invokedAtMillis, result)
+    }
+
+    private fun abort(startId: Int, actionId: String?, invokedAtMillis: Long?, error: RuntimeException): Int {
+        Log.w(LOG_TAG, "Action $actionId could not run in the foreground", error)
+        if (actionId != null) report(actionId, invokedAtMillis, DeviceResult.Failure("Android did not allow it to run: ${error.message}"))
+        stopSelf(startId)
+        return START_NOT_STICKY
+    }
+
+    /** Logs [result], records it for a routine invocation and shows failures as a toast. */
+    private fun report(actionId: String, invokedAtMillis: Long?, result: DeviceResult) {
         Log.i(LOG_TAG, "Action $actionId: $result")
-        if (invokedAtMillis != null) preferences.recordRoutineResult(invokedAtMillis, result)
+        if (invokedAtMillis != null) AppPreferences(this).recordRoutineResult(invokedAtMillis, result)
         if (result is DeviceResult.Failure) {
-            val label = action?.label ?: actionId
-            Toast.makeText(this, getString(R.string.routine_action_failed, label, result.reason), Toast.LENGTH_LONG)
+            Toast.makeText(this, getString(R.string.routine_action_failed, labelOf(actionId), result.reason), Toast.LENGTH_LONG)
                 .show()
         }
+    }
+
+    private fun announce(actionId: String) {
+        val deviceName = AppPreferences(this).registeredDevice?.name ?: return
+        Toast.makeText(this, getString(R.string.widget_action_sending, labelOf(actionId), deviceName), Toast.LENGTH_SHORT)
+            .show()
+    }
+
+    private fun labelOf(actionId: String): String {
+        val device = AppPreferences(this).registeredDevice
+        return device?.let { findModel(it.modelId) }?.findAction(actionId)?.label ?: actionId
     }
 
     private fun startInForeground() {

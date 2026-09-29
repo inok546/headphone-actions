@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.inok546.headphoneactions"
         minSdk = 26
         targetSdk = 36
-        versionCode = 10
-        versionName = "0.9.1"
+        versionCode = 12
+        versionName = "0.9.3"
     }
 
     // The release key lives outside the repository. Its location and passwords come from

@@ -79,8 +79,6 @@ Release APKs are signed with the project key. Its certificate SHA-256 fingerprin
 D8:1A:48:52:85:61:2A:B2:B1:F8:54:8B:EC:ED:0F:89:C3:9A:80:89:93:1B:06:A2:67:4A:C4:96:85:34:EC:66
 ```
 
-Builds made locally from source use a different signing key by default, so Android may require uninstalling one build before installing the other.
-
 ## Quick start
 
 1. Pair your headphones in Android Bluetooth settings.
@@ -156,7 +154,7 @@ Android does not expose the phone's own Bluetooth address to ordinary apps, so t
 
 ## Home screen widget
 
-The Headphone Actions widget puts buttons for your registered headphones on the home screen. A tap runs the action in the background, just like a routine. The buttons send commands; the widget does not show the current state of the headphones.
+The Headphone Actions widget puts buttons for your registered headphones on the home screen. A tap runs the action in the background, just like a routine, and a short message confirms which action is being sent; errors are shown the same way. On Android 13 and later these messages need notifications to be allowed — the app's **Messages** section asks for it. The buttons send commands; the widget does not show the current state of the headphones.
 
 - **Add it:** long-press the home screen → **Widgets** → **Headphone Actions**. A new widget starts with **Noise Cancelling**, **Ambient Sound** and **Speak-to-Chat Off**. (On Android 11 and earlier the settings screen opens first, with these preselected.)
 - **Header:** when the widget is tall enough, a line at the top names the headphones the buttons are for (and the app, on a 4-cell-wide widget).
@@ -235,6 +233,7 @@ For Sony WH-1000XM6, Headphone Actions communicates using Sony's MDR protocol ov
 | `BLUETOOTH` on Android 11 and earlier | Bluetooth communication on older Android versions                     |
 | `FOREGROUND_SERVICE`                  | Let an action started by a routine or the widget finish reliably in the background |
 | `FOREGROUND_SERVICE_CONNECTED_DEVICE` | Android foreground-service type used for the short Bluetooth exchange |
+| `POST_NOTIFICATIONS` on Android 13+   | Optional, requested from the app's **Messages** section: without it Android hides the short messages shown for widget taps and failed actions |
 | `WAKE_LOCK`, `RECEIVE_BOOT_COMPLETED`, `ACCESS_NETWORK_STATE` | Added by WorkManager, which Jetpack Glance uses to update the home screen widget; not used by Headphone Actions' own code |
 
 No location permission is requested merely to control already paired headphones, and the app has no Internet permission.
