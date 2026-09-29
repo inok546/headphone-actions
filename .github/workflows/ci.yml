@@ -37,8 +37,8 @@ jobs:
         with:
           cache-provider: basic
 
-      # The runner's preinstalled Android SDK is used (ANDROID_HOME); the Android Gradle plugin
-      # downloads components it lacks (platforms;android-37.0, build-tools;36.0.0) by itself.
+      # No Android SDK setup step: the runner image's preinstalled SDK (ANDROID_HOME) already has
+      # platforms;android-37.0 and build-tools;36.0.0. Add an sdkmanager step if an image drops them.
       - name: Unit tests
         run: ./gradlew test
 
