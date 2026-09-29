@@ -89,12 +89,38 @@ After an update that adds actions, tap **Remove registration**, register the hea
 choose this phone again, to publish the new shortcuts. Existing shortcut IDs stay the same, so
 your routines keep working.
 
+## Home screen widget
+
+Headphone Actions also has a home screen widget with buttons for the actions of your
+registered headphones. The buttons send commands; the widget does not show the current state of
+the headphones.
+
+- **Add it:** long-press the home screen → **Widgets** → **Headphone Actions**. It starts with
+  **Noise Cancelling**, **Ambient Sound** and **Speak-to-Chat Off** (on Android 11 and lower the
+  settings screen opens first, with these preselected).
+- **Sizes:** 4×1 by default; resize it from 2×1 up to 2 rows.
+  - 1 row: icons only, as many as fit, in your order (2 on a 2×1 widget).
+  - 2 rows: tiles with an icon and a short label.
+- **Change the buttons:** long-press the widget → **Settings**. Check the actions to show and
+  use the arrows to order them, then tap **Save**. Only the actions of the registered headphones
+  are offered.
+- **Several widgets:** every widget has its own buttons; changing one leaves the others alone.
+- **Other headphones registered:** a widget set up for another model shows *Headphones changed*
+  with a **Configure** button; its old buttons are not mapped onto the new model.
+- **No headphones registered:** the widget shows *No device registered* with a button that opens
+  the app.
+
+A tap runs the action in the background exactly like a routine does; if it fails, a short message
+appears. The widgets update only after you register or remove headphones or change their
+buttons, not when the headphones connect or disconnect.
+
 ## How it works
 
 ```
 registered device → model support → supported actions → app shortcuts
 
 routine → shortcut → RoutineActionActivity → ActionExecutionService → RFCOMM → headphones
+widget button ─────────────────────────────→ ActionExecutionService → RFCOMM → headphones
 ```
 
 - You register one device explicitly; the app never picks a device on its own.
@@ -146,7 +172,8 @@ app/src/main/java/io/github/inok546/headphoneactions/
 ├── device/                          HeadphoneModel interface, registered device
 │   └── sony/                        Sony WH-1000XM6 support
 │       └── mdr/                     Sony MDR protocol: framing, session, commands
-└── routines/                        shortcut publishing and execution
+├── routines/                        shortcut publishing and execution
+└── widget/                          home screen widget (Jetpack Glance) and its settings
 ```
 
 To add a model, implement `HeadphoneModel` — recognize the device by its Bluetooth name,

@@ -3,6 +3,7 @@
 package io.github.inok546.headphoneactions.device.sony
 
 import android.content.Context
+import io.github.inok546.headphoneactions.device.ActionIcon
 import io.github.inok546.headphoneactions.device.DeviceResult
 import io.github.inok546.headphoneactions.device.HeadphoneModel
 import io.github.inok546.headphoneactions.device.RegisteredDevice
@@ -19,17 +20,37 @@ import io.github.inok546.headphoneactions.device.sony.mdr.toHex
 /** Sony WH-1000XM6. The action IDs are published and must not change. */
 object SonyWh1000xm6 : HeadphoneModel {
 
-    private val noiseCancelling = SupportedAction("sony.wh1000xm6.noise_control.anc", "Noise Cancelling")
-    private val ambientSound = SupportedAction("sony.wh1000xm6.noise_control.ambient", "Ambient Sound")
-    private val noiseControlOff = SupportedAction("sony.wh1000xm6.noise_control.off", "Noise Control Off")
-    private val speakToChatOn = SupportedAction("sony.wh1000xm6.speak_to_chat.on", "Speak-to-Chat On")
-    private val speakToChatOff = SupportedAction("sony.wh1000xm6.speak_to_chat.off", "Speak-to-Chat Off")
-    private val dseeOn = SupportedAction("sony.wh1000xm6.dsee.on", "DSEE Extreme On")
-    private val dseeOff = SupportedAction("sony.wh1000xm6.dsee.off", "DSEE Extreme Off")
-    private val lockThisPhone = SupportedAction("sony.wh1000xm6.playback.lock_this_phone", "Play on This Phone")
-    private val lockOtherDevice = SupportedAction("sony.wh1000xm6.playback.lock_other_device", "Play on Other Device")
-    private val lockCurrent = SupportedAction("sony.wh1000xm6.playback.lock_current", "Lock Playback Device")
-    private val autoSwitch = SupportedAction("sony.wh1000xm6.playback.auto_switch", "Auto Playback Switching")
+    private val noiseCancelling = SupportedAction(
+        "sony.wh1000xm6.noise_control.anc", "Noise Cancelling", "ANC", ActionIcon.NOISE_CANCELLING,
+    )
+    private val ambientSound = SupportedAction(
+        "sony.wh1000xm6.noise_control.ambient", "Ambient Sound", "Ambient", ActionIcon.AMBIENT_SOUND,
+    )
+    private val noiseControlOff = SupportedAction(
+        "sony.wh1000xm6.noise_control.off", "Noise Control Off", "NC off", ActionIcon.NOISE_CONTROL_OFF,
+    )
+    private val speakToChatOn = SupportedAction(
+        "sony.wh1000xm6.speak_to_chat.on", "Speak-to-Chat On", "STC on", ActionIcon.SPEAK_TO_CHAT_ON,
+    )
+    private val speakToChatOff = SupportedAction(
+        "sony.wh1000xm6.speak_to_chat.off", "Speak-to-Chat Off", "STC off", ActionIcon.SPEAK_TO_CHAT_OFF,
+    )
+    private val dseeOn = SupportedAction("sony.wh1000xm6.dsee.on", "DSEE Extreme On", "DSEE on", ActionIcon.UPSCALING_ON)
+    private val dseeOff = SupportedAction(
+        "sony.wh1000xm6.dsee.off", "DSEE Extreme Off", "DSEE off", ActionIcon.UPSCALING_OFF,
+    )
+    private val lockThisPhone = SupportedAction(
+        "sony.wh1000xm6.playback.lock_this_phone", "Play on This Phone", "This phone", ActionIcon.PLAYBACK_THIS_PHONE,
+    )
+    private val lockOtherDevice = SupportedAction(
+        "sony.wh1000xm6.playback.lock_other_device", "Play on Other Device", "Other device", ActionIcon.PLAYBACK_OTHER_DEVICE,
+    )
+    private val lockCurrent = SupportedAction(
+        "sony.wh1000xm6.playback.lock_current", "Lock Playback Device", "Lock device", ActionIcon.PLAYBACK_LOCK,
+    )
+    private val autoSwitch = SupportedAction(
+        "sony.wh1000xm6.playback.auto_switch", "Auto Playback Switching", "Auto switch", ActionIcon.PLAYBACK_AUTO,
+    )
 
     override val id = "sony.wh1000xm6"
     override val displayName = "Sony WH-1000XM6"
@@ -46,6 +67,8 @@ object SonyWh1000xm6 : HeadphoneModel {
         lockCurrent,
         autoSwitch,
     )
+
+    override val quickActionIds = listOf(noiseCancelling.id, ambientSound.id, speakToChatOff.id)
 
     // Gadgetbridge's SonyWH1000XM6Coordinator matches ".*WH-1000XM6.*". "LE_"-prefixed
     // entries are excluded: that is the LE Audio side of the headphones, while the Sony

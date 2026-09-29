@@ -46,6 +46,30 @@
             android:name=".routines.ActionExecutionService"
             android:exported="false"
             android:foregroundServiceType="connectedDevice" />
+
+        <!-- Home screen widget; its buttons start ActionExecutionService directly. -->
+        <receiver
+            android:name=".widget.HeadphoneActionsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/headphone_actions_widget" />
+        </receiver>
+
+        <!-- Exported so launchers can open it for "Settings"; it accepts only this app's widget IDs. -->
+        <activity
+            android:name=".widget.WidgetConfigActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:taskAffinity="">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

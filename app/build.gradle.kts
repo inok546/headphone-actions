@@ -13,8 +13,8 @@ android {
         applicationId = "io.github.inok546.headphoneactions"
         minSdk = 26
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.8.0"
+        versionCode = 9
+        versionName = "0.9.0"
     }
 
     // The release key lives outside the repository. Its location and passwords come from
@@ -61,6 +61,7 @@ dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.glance.appwidget)
 
     testImplementation(libs.junit)
 }

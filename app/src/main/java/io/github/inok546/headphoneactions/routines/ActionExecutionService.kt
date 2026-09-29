@@ -27,10 +27,11 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 /**
- * Executes one action triggered through a published shortcut. RoutineActionActivity closes
- * at once, so this short-lived foreground service (type connectedDevice) keeps the process
- * running for the few seconds the Bluetooth exchange takes, then stops itself. Android 12+
- * defers its notification by up to 10 seconds, so normally none is shown.
+ * Executes one action triggered through a published shortcut or a home screen widget button.
+ * RoutineActionActivity closes at once and a widget has no process of its own, so this
+ * short-lived foreground service (type connectedDevice) keeps the process running for the few
+ * seconds the Bluetooth exchange takes, then stops itself. Android 12+ defers its notification
+ * by up to 10 seconds, so normally none is shown.
  */
 class ActionExecutionService : Service() {
 
@@ -41,7 +42,9 @@ class ActionExecutionService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startInForeground()
         val actionId = intent?.getStringExtra(EXTRA_ACTION_ID)
-        val invokedAtMillis = intent?.getLongExtra(EXTRA_INVOKED_AT, 0) ?: 0
+        // Only routine invocations carry the time they were recorded at; widget buttons do not.
+        val invokedAtMillis = intent?.takeIf { it.hasExtra(EXTRA_INVOKED_AT) }?.getLongExtra(EXTRA_INVOKED_AT, 0)
+        Log.i(LOG_TAG, "Starting action $actionId from ${if (invokedAtMillis != null) "a routine" else "a widget"}")
         scope.launch {
             if (actionId != null) execute(actionId, invokedAtMillis)
             // Stops only once the latest start request has been handled.
@@ -55,7 +58,7 @@ class ActionExecutionService : Service() {
         super.onDestroy()
     }
 
-    private suspend fun execute(actionId: String, invokedAtMillis: Long) {
+    private suspend fun execute(actionId: String, invokedAtMillis: Long?) {
         val preferences = AppPreferences(this)
         val device = preferences.registeredDevice
         val model = device?.let { findModel(it.modelId) }
@@ -65,8 +68,8 @@ class ActionExecutionService : Service() {
         } else {
             DeviceAccess.exclusive { model.execute(applicationContext, device, action) }
         }
-        Log.i(LOG_TAG, "Routine action $actionId: $result")
-        preferences.recordRoutineResult(invokedAtMillis, result)
+        Log.i(LOG_TAG, "Action $actionId: $result")
+        if (invokedAtMillis != null) preferences.recordRoutineResult(invokedAtMillis, result)
         if (result is DeviceResult.Failure) {
             val label = action?.label ?: actionId
             Toast.makeText(this, getString(R.string.routine_action_failed, label, result.reason), Toast.LENGTH_LONG)
@@ -100,9 +103,10 @@ class ActionExecutionService : Service() {
         private const val EXTRA_ACTION_ID = "io.github.inok546.headphoneactions.extra.ACTION_ID"
         private const val EXTRA_INVOKED_AT = "io.github.inok546.headphoneactions.extra.INVOKED_AT"
 
-        fun intentFor(context: Context, actionId: String, invokedAtMillis: Long): Intent =
+        /** [invokedAtMillis] links the result to the recorded routine invocation; null for widgets. */
+        fun intentFor(context: Context, actionId: String, invokedAtMillis: Long? = null): Intent =
             Intent(context, ActionExecutionService::class.java)
                 .putExtra(EXTRA_ACTION_ID, actionId)
-                .putExtra(EXTRA_INVOKED_AT, invokedAtMillis)
+                .apply { if (invokedAtMillis != null) putExtra(EXTRA_INVOKED_AT, invokedAtMillis) }
     }
 }

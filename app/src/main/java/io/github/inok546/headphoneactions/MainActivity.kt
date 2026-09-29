@@ -28,6 +28,7 @@ import io.github.inok546.headphoneactions.device.SourceDevicesResult
 import io.github.inok546.headphoneactions.device.SupportedAction
 import io.github.inok546.headphoneactions.device.findModel
 import io.github.inok546.headphoneactions.routines.ShortcutPublisher
+import io.github.inok546.headphoneactions.widget.HeadphoneActionsWidgets
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -86,6 +87,7 @@ class MainActivity : ComponentActivity() {
         preferences.registeredDevice = registered
         Log.i(LOG_TAG, "Registered device: $registered")
         ShortcutPublisher.publish(this, model)
+        refreshWidgets()
         refresh()
     }
 
@@ -135,8 +137,14 @@ class MainActivity : ComponentActivity() {
         preferences.registeredDevice = null
         Log.i(LOG_TAG, "Registration removed")
         ShortcutPublisher.removeAll(this)
+        refreshWidgets()
         uiState = uiState.copy(deviceOperation = null, sourceDevices = null)
         refresh()
+    }
+
+    /** Home screen widgets follow explicit registration changes only. */
+    private fun refreshWidgets() {
+        lifecycleScope.launch { HeadphoneActionsWidgets.refreshAll(applicationContext) }
     }
 
     private fun refresh() {

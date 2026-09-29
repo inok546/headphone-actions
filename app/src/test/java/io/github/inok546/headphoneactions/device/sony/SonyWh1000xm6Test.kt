@@ -38,6 +38,11 @@ class SonyWh1000xm6Test {
     }
 
     @Test
+    fun `quick actions are actions of the model`() {
+        SonyWh1000xm6.quickActionIds.forEach { assertTrue(it, SonyWh1000xm6.findAction(it) != null) }
+    }
+
+    @Test
     fun `matches the Bluetooth Classic device name`() {
         assertTrue(SonyWh1000xm6.matchesDeviceName("WH-1000XM6"))
         assertTrue(SonyWh1000xm6.matchesDeviceName("Sony WH-1000XM6"))

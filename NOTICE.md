@@ -20,6 +20,15 @@ original copyright notice in its header.
 The WH-1000XM6 Bluetooth name pattern in `device/sony/SonyWh1000xm6.kt` follows
 Gadgetbridge's `SonyWH1000XM6Coordinator.java`.
 
+## Material Symbols
+
+- Project: https://github.com/google/material-design-icons — Copyright Google LLC
+- License: Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+
+The action and arrow icons `app/src/main/res/drawable/ic_action_*.xml` and `ic_move_*.xml` are
+Material Symbols (outlined, 24 dp), unmodified except for a removed theme tint. Each file names
+its source symbol.
+
 ## References
 
 Protocol facts, no code, were also taken from:
